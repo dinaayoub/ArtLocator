@@ -1,0 +1,23 @@
+body {
+    max-width: 1060px;
+    margin: auto;
+    background-color: rgb(245, 241, 241);
+    padding: 10px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+h1{
+    font-size: 28pt;
+    text-align: center;
+    padding: 10px 0px;
+}
+
+h2{
+    font-size: 24pt;
+    padding: 10px 0px;
+}
+footer {
+    font-size: 12pt;
+    font-style: italic;
+    text-align: center;
+}

@@ -1,0 +1,9 @@
+<% console.log(artwork) %>
+<div class = "artwork">
+    <p class="museum"><%= artwork.museum%></p>
+    <p class="artistName"><%= artwork.artistName%></p>
+    <p class="artworkDescription"><%= artwork.artworkDescription%></p>
+    <p class="artworkTitle"><%= artwork.artworkTitle%></p>
+    <% if (artwork.artworkImage) %>
+    <img class="thumbnail" height='300px' src="<%=artwork.artworkImage%>">
+</div>
