@@ -22,6 +22,8 @@ env.config();
 const PORT = process.env.PORT || 3300;
 const client = new pg.Client(process.env.DATABASE_URL);
 
+//global variables
+
 //connect to db
 client.connect();
 client.on('error', error => handleErrors(error));
@@ -29,8 +31,8 @@ client.on('error', error => handleErrors(error));
 //handle application routes
 app.get('/', showHomepage);
 app.post('/searches', getArtworkResults)
+
 //object constructors
-var artworks = [];
 
 function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescription) {
   this.museum = museum;
@@ -49,8 +51,6 @@ function getArtworkResults(req, res) {
   try {
     //call all the APIs
     getSmithsonianResults(req, res);
-    res.render('pages/artworks', { artworks: artworks });
-    //artworks = [];
   }
   catch (error) {
     handleErrors(error, res);
@@ -60,20 +60,25 @@ function getArtworkResults(req, res) {
 function getSmithsonianResults(req, res) {
   //Testing the smithsonian api
   let artist = req.body.search;
-  console.log('ARTIST NAME = ', artist);
   let url = `https://api.si.edu/openaccess/api/v1.0/category/art_design/search?q=${artist}&api_key=${process.env.SMITHSONIAN_APIKEY}`;
+  
+  //call the smithsonian's API
   superagent.get(url)
     .then(data => {
+      //create an array of artworks and add all the smithsonian results to it
+      var artworks = [];
       var rows = data.body.response.rows;
       rows.forEach(item => {
+        console.log(item.content.freetext);
         artworks.push(new ArtWork(
           item.content.descriptiveNonRepeating.data_source,
-          artist,
+          item.content.freetext.name[0].content,
           item.title,
-          item.content.descriptiveNonRepeating.online_media ? item.content.descriptiveNonRepeating.online_media.media[0].thumbnail : null,
-          item.content.freetext.notes[0].content));
-        console.log(artworks);
+          item.content.descriptiveNonRepeating.online_media ? (item.content.descriptiveNonRepeating.online_media.mediaCount > 0 ? item.content.descriptiveNonRepeating.online_media.media[0].thumbnail : null) : null,
+          item.content.freetext.notes ? (item.content.freetext.notes[0].content ? item.content.freetext.notes[0].content : null) : null
+        ));
       });
+      res.render('pages/artworks', { artworks: artworks, query: artist });
     })
     .catch(error => handleErrors(error, res));
 }
