@@ -9,6 +9,7 @@
         <%- include('../layout/header') %>
     </header>
     <main>
+        <%- include('partials/searchBar') %>
         <h2>Search results for <%= query %></h2>
         <ul>
             <% artworks.forEach(artwork => { %>
