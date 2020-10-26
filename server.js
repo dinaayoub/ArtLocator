@@ -64,6 +64,7 @@ function getArtworkResults(req, res) {
   //call the smithsonian's API
   superagent.get(url)
     .then(smithsonianData => {
+      //after every.tehn turn this into a function//
       //create an array of artworks that we will add all the smithsonian results to
       var allArtworks = [];
       //narrow down the results to those where the artist name matches the search query by using .filter on the returned array.
@@ -129,13 +130,40 @@ function getArtworkResults(req, res) {
             })
             //now that we have the allArtworks array returned from the previous .then, render that array to the artworks page.
             .then(data => {
-              //console.log(data);
+              let sql = `SELECT name FROM artists WHERE name=$1;`;
+              let values = [artist];
+              client.query(sql, values)
+                .then(result => {
+                  console.log(result);
+                  if (result.rows.length === 0) {
+                    let addArtistToTable = `INSERT INTO artists (name) VALUES ($1) RETURNING id;`;
+                    let values = [artist];
+                    client.query(addArtistToTable, values)
+                      .then(result => {
+                        console.log(result);
+                      });
+                  }
+                });
               res.render('pages/artworks', { artworks: data, query: artist });
             })
             .catch(error => handleErrors(error, res));
-        })
+        });
     });
 }
+//check whether this artist is already in the database//
+
+//if YES, do nothing, if NO, add to the artists table, get the ID back//
+//INSERT INTO artwork//
+
+//loop over data array, check if museum that is in the data array is in the database//
+
+//if YES take museum ID and insert into artwork table the current object(from the data array taht we are looking at)//
+
+//if NO add museum and get museum ID (INSERT INTO)//
+
+//now I have the artist ID and the museum ID, and the object itself (at whatever index)//
+
+//INSERT all INTO artwork table//
 
 function handleErrors(error, res) {
   //render the error page with the provided error message.
