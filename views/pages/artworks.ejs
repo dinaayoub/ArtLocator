@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+
+    <head>
+        <%- include('../layout/head') %>
+    </head>
+<body>
+    <header>
+        <%- include('../layout/header') %>
+    </header>
+    <main>
+        <h2>Search results for <%= query %></h2>
+        <ul>
+            <% artworks.forEach(artwork => { %>
+            <li class="artistResult">
+                <%- include('partials/artwork', {artwork: artwork}) %>
+            </li>
+            <%}) %>
+        </ul>
+    </main>
+    <footer>
+        <%- include('../layout/footer') %>
+    </footer>
+    
+</body>
+
+</html>

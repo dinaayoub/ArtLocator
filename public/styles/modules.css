@@ -1,0 +1,8 @@
+.artworkDiv{
+    background-color: lightgrey;
+    padding: 10px;
+    margin: 10px;
+}
+.artworkImage{
+    max-width: 100%;
+}
