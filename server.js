@@ -130,40 +130,59 @@ function getArtworkResults(req, res) {
             })
             //now that we have the allArtworks array returned from the previous .then, render that array to the artworks page.
             .then(data => {
+              console.log('object from APIS', data);
               res.render('pages/artworks', { artworks: data, query: artist });
-              let sql = `SELECT name FROM artists WHERE name=$1;`;
+              let sql = `SELECT id FROM artists WHERE name=$1;`;
               let values = [artist];
               client.query(sql, values)
                 .then(result => {
-                  console.log(result);
+                  console.log('id of artist', result.rows);
                   if (result.rows.length === 0) {
-                    let addArtistToTable = `INSERT INTO artists (name) VALUES ($1) RETURNING id;`;
+                    let addArtistsToTable = `INSERT INTO artists (name) VALUES ($1) RETURNING id;`;
                     let values = [artist];
-                    client.query(addArtistToTable, values)
+                    client.query(addArtistsToTable, values)
                       .then(result => {
-                        let artistId = result.rows[0];
+                        console.log('id inserted into artists table', result.rows[0]);
+                        var artistsId = result.rows[0].id;
                         data.forEach(artwork => {
-                          let sql = `SELECT id FROM museum WHERE name=$1;`;
+                          let sql = `SELECT id FROM museums WHERE name=$1;`;
                           let values = [artwork.museum];
-                          client.query(sql, values)
+                          console.log(values);
+                          return client.query(sql, values)
                             .then(result => {
+                              console.log('id of museum', result.rows);
                               if (result.rows.length === 0) {
-                                let addMuseumTable = `INSERT INTO museum (name) VALUES ($1) RETURNING id;`;
+                                let addMuseumsTable = `INSERT INTO museums (name) VALUES ($1) RETURNING id;`;
                                 let values = [artwork.museum];
-                                client.query(addMuseumTable, values)
+                                client.query(addMuseumsTable, values)
+                                  .then(result => {
+                                    console.log('id inserted into museums table', result.rows[0]);
+                                    artwork.museumId = result.rows[0].id;
+                                    let addToArtworksTable = `INSERT INTO artworks (title, description, image, artist_id, museum_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
+                                    let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artistsId, artwork.museumId];
+                                    console.log(values);
+                                    client.query(addToArtworksTable, values)
+                                      .then(result => {
+                                        console.log(result.rows);
+                                      });
+                                  });
+                              } else {
+                                artwork.museumId = result.rows[0].id;
+                                let addToArtworksTable = `INSERT INTO artworks (title, description, image, artist_id, museum_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
+                                let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artistsId, artwork.museumId];
+                                client.query(addToArtworksTable, values)
+                                  .then(result => {
+                                    console.log(result.rows);
+                                  });
                               }
-                            })
-                          // .then(result => {
-
-
-                          // })
+                            }
+                            );
                         });
                       });
                   }
                 });
             });
-        })
-        .catch(error => handleErrors(error, res));
+        });
     });
 }
 
