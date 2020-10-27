@@ -20,9 +20,7 @@ CREATE TABLE artworks (
     description TEXT,
     image VARCHAR(255),
     artist_id int,
-    museum_id int,
-    CONSTRAINT artist_id FOREIGN KEY(id) REFERENCES artists(id),
-    CONSTRAINT museum_id FOREIGN KEY(id) REFERENCES museums(id)
+    museum_id int
 );
 
 
