@@ -124,12 +124,13 @@ function getArtworkResults(req, res) {
                     null
                   ));
                 }
-              })
+              });
               //we are done adding the MET results to the artworks array. Return it so that the next .then block can use it.
               return allArtworks;
             })
             //now that we have the allArtworks array returned from the previous .then, render that array to the artworks page.
             .then(data => {
+              res.render('pages/artworks', { artworks: data, query: artist });
               let sql = `SELECT name FROM artists WHERE name=$1;`;
               let values = [artist];
               client.query(sql, values)
@@ -140,16 +141,32 @@ function getArtworkResults(req, res) {
                     let values = [artist];
                     client.query(addArtistToTable, values)
                       .then(result => {
-                        console.log(result);
+                        let artistId = result.rows[0];
+                        data.forEach(artwork => {
+                          let sql = `SELECT id FROM museum WHERE name=$1;`;
+                          let values = [artwork.museum];
+                          client.query(sql, values)
+                            .then(result => {
+                              if (result.rows.length === 0) {
+                                let addMuseumTable = `INSERT INTO museum (name) VALUES ($1) RETURNING id;`;
+                                let values = [artwork.museum];
+                                client.query(addMuseumTable, values)
+                              }
+                            })
+                          // .then(result => {
+
+
+                          // })
+                        });
                       });
                   }
                 });
-              res.render('pages/artworks', { artworks: data, query: artist });
-            })
-            .catch(error => handleErrors(error, res));
-        });
+            });
+        })
+        .catch(error => handleErrors(error, res));
     });
 }
+
 //check whether this artist is already in the database//
 
 //if YES, do nothing, if NO, add to the artists table, get the ID back//
