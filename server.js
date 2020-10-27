@@ -31,6 +31,7 @@ client.on('error', error => handleErrors(error));
 //handle application routes
 app.get('/', showHomepage);
 app.post('/searches', getArtworkResults);
+app.get('/showArtworks/:id', showArtWork);
 
 //object constructors
 
@@ -44,10 +45,23 @@ function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescript
 
 //functions
 function showHomepage(req, res) {
+  let sql = `SELECT * FROM artists;`;
+  client.query(sql)
+    .then(artistsResult => {
+      res.render('pages/index', { artists: artistsResult.rows });
+    });
   //retrieve favorites here
 
   //then render the page
-  res.render('pages/index');
+}
+
+function showArtwork(req, res) {
+  let sql = `SELECT * FROM artworks JOIN museums ON artworks.museum_id=museumS.id JOIN artists ON artworks.artist_id=artists.id WHERE artist_id=$1;`;
+  client.query(sql)
+    .then(artworksResults => {
+      res.render('pages/savedArtist', { artworks: artworksResults.rows });
+    });
+
 }
 
 function getArtworkResults(req, res) {
@@ -165,62 +179,65 @@ function getArtworkResults(req, res) {
                       return allArtworks;
                     })
                     .then(data => {
-                        //now that we have the allArtworks array returned from the previous .then, render that array to the artworks page.
-                       res.render('pages/artworks', { artworks: data, query: artist });
-                       return data; })
-                    .then (data => {
+                      //now that we have the allArtworks array returned from the previous .then, render that array to the artworks page.
+                      res.render('pages/artworks', { artworks: data, query: artist });
+                      return data;
+                    })
+                    .then(data => {
                       let sql = `SELECT id FROM artists WHERE name=$1;`;
                       let values = [artist];
                       client.query(sql, values)
                         .then(result => {
-                         console.log('id of artist', result.rows);
-                         if (result.rows.length === 0) {
-                          let addArtistsToTable = `INSERT INTO artists (name) VALUES ($1) RETURNING id;`;
-                          let values = [artist];
-                          client.query(addArtistsToTable, values)
-                            .then(result => {
-                              console.log('id inserted into artists table', result.rows[0]);
-                              var artistsId = result.rows[0].id;
-                              data.forEach(artwork => {
-                                 let sql = `SELECT id FROM museums WHERE name=$1;`;
-                                let values = [artwork.museum];
-                                console.log(values);
-                                return client.query(sql, values)
-                                  .then(result => {
-                                    console.log('id of museum', result.rows);
-                                    if (result.rows.length === 0) {
-                                      let addMuseumsTable = `INSERT INTO museums (name) VALUES ($1) RETURNING id;`;
-                                      let values = [artwork.museum];
-                                      client.query(addMuseumsTable, values)
-                                       .then(result => {
-                                          console.log('id inserted into museums table', result.rows[0]);
-                                          artwork.museumId = result.rows[0].id;
-                                          let addToArtworksTable = `INSERT INTO artworks (title, description, image, artist_id, museum_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
-                                          let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artistsId, artwork.museumId];
-                                          console.log(values);
-                                          client.query(addToArtworksTable, values)
-                                            .then(result => {
-                                              console.log(result.rows);
-                                            });
-                                        });
-                                    } else {
-                                      artwork.museumId = result.rows[0].id;
-                                      let addToArtworksTable = `INSERT INTO artworks (title, description, image, artist_id, museum_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
-                                      let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artistsId, artwork.museumId];
-                                      client.query(addToArtworksTable, values)
-                                        .then(result => {
-                                          console.log(result.rows);
-                                        });
+                          console.log('id of artist', result.rows);
+                          if (result.rows.length === 0) {
+                            let addArtistsToTable = `INSERT INTO artists (name) VALUES ($1) RETURNING id;`;
+                            let values = [artist];
+                            client.query(addArtistsToTable, values)
+                              .then(result => {
+                                console.log('id inserted into artists table', result.rows[0]);
+                                var artistsId = result.rows[0].id;
+                                data.forEach(artwork => {
+                                  let sql = `SELECT id FROM museums WHERE name=$1;`;
+                                  let values = [artwork.museum];
+                                  console.log(values);
+                                  return client.query(sql, values)
+                                    .then(result => {
+                                      console.log('id of museum', result.rows);
+                                      if (result.rows.length === 0) {
+                                        let addMuseumsTable = `INSERT INTO museums (name) VALUES ($1) RETURNING id;`;
+                                        let values = [artwork.museum];
+                                        client.query(addMuseumsTable, values)
+                                          .then(result => {
+                                            console.log('id inserted into museums table', result.rows[0]);
+                                            artwork.museumId = result.rows[0].id;
+                                            let addToArtworksTable = `INSERT INTO artworks (title, description, image, artist_id, museum_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
+                                            let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artistsId, artwork.museumId];
+                                            console.log(values);
+                                            client.query(addToArtworksTable, values)
+                                              .then(result => {
+                                                console.log(result.rows);
+                                              });
+                                          });
+                                      } else {
+                                        artwork.museumId = result.rows[0].id;
+                                        let addToArtworksTable = `INSERT INTO artworks (title, description, image, artist_id, museum_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
+                                        let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artistsId, artwork.museumId];
+                                        client.query(addToArtworksTable, values)
+                                          .then(result => {
+                                            console.log(result.rows);
+                                          });
+                                      }
                                     }
-                                  }
-                                  );
+                                    );
+                                });
                               });
-                            });
-                        }
-                      });
-                  });
-              });
-          });
+                          }
+                        });
+                    });
+                });
+            });
+        });
+    });
 }
 
 //check whether this artist is already in the database//
