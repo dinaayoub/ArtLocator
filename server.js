@@ -170,6 +170,7 @@ function getArtworkResults(req, res) {
                       return data;
                     })
                     .then(data => {
+
                       let sql = `SELECT id FROM artists WHERE name=$1;`;
                       let values = [artist];
                       client.query(sql, values)
