@@ -124,7 +124,7 @@ function getArtworkResults(req, res) {
                     null
                   ));
                 }
-              })
+              });
               //we are done adding the MET results to the artworks array. Return it so that the next .then block can use it.
               return allArtworks;
             })
@@ -169,29 +169,60 @@ function getArtworkResults(req, res) {
                        res.render('pages/artworks', { artworks: data, query: artist });
                        return data; })
                     .then (data => {
-                      let sql = `SELECT name FROM artists WHERE name=$1;`;
+                      let sql = `SELECT id FROM artists WHERE name=$1;`;
                       let values = [artist];
                       client.query(sql, values)
                         .then(result => {
-                          if (result.rows.length === 0) {
-                            let addArtistToTable = `INSERT INTO artists (name) VALUES ($1) RETURNING id;`;
-                            let values = [artist];
-                            client.query(addArtistToTable, values)
-                              .then(result => {
-                                console.log(result);
+                         console.log('id of artist', result.rows);
+                         if (result.rows.length === 0) {
+                          let addArtistsToTable = `INSERT INTO artists (name) VALUES ($1) RETURNING id;`;
+                          let values = [artist];
+                          client.query(addArtistsToTable, values)
+                            .then(result => {
+                              console.log('id inserted into artists table', result.rows[0]);
+                              var artistsId = result.rows[0].id;
+                              data.forEach(artwork => {
+                                 let sql = `SELECT id FROM museums WHERE name=$1;`;
+                                let values = [artwork.museum];
+                                console.log(values);
+                                return client.query(sql, values)
+                                  .then(result => {
+                                    console.log('id of museum', result.rows);
+                                    if (result.rows.length === 0) {
+                                      let addMuseumsTable = `INSERT INTO museums (name) VALUES ($1) RETURNING id;`;
+                                      let values = [artwork.museum];
+                                      client.query(addMuseumsTable, values)
+                                       .then(result => {
+                                          console.log('id inserted into museums table', result.rows[0]);
+                                          artwork.museumId = result.rows[0].id;
+                                          let addToArtworksTable = `INSERT INTO artworks (title, description, image, artist_id, museum_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
+                                          let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artistsId, artwork.museumId];
+                                          console.log(values);
+                                          client.query(addToArtworksTable, values)
+                                            .then(result => {
+                                              console.log(result.rows);
+                                            });
+                                        });
+                                    } else {
+                                      artwork.museumId = result.rows[0].id;
+                                      let addToArtworksTable = `INSERT INTO artworks (title, description, image, artist_id, museum_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
+                                      let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artistsId, artwork.museumId];
+                                      client.query(addToArtworksTable, values)
+                                        .then(result => {
+                                          console.log(result.rows);
+                                        });
+                                    }
+                                  }
+                                  );
                               });
-                          }
-                      })
-                    .catch(error => handleErrors(error, res));
-                })
-                .catch(error => handleErrors(error, res));
-            })
-            .catch(error => handleErrors(error, res));
-        })
-        .catch(error => handleErrors(error, res));
-    })
-    .catch(error => handleErrors(error, res));
+                            });
+                        }
+                      });
+                  });
+              });
+          });
 }
+
 //check whether this artist is already in the database//
 
 //if YES, do nothing, if NO, add to the artists table, get the ID back//
