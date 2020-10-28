@@ -76,7 +76,7 @@ function getArtworkResults(req, res) {
         //check if the item's artist name matches the search query, because these APIs don't let you limit to artist name search only.
         allArtworks.push(new ArtWork(
           item.content.descriptiveNonRepeating.data_source,
-          item.content.freetext.name[0].content,
+          item.content.freetext.name[0].content? item.content.freetext.name[0].content : artist,
           item.title,
           //if there is online_media, then check how many items are in it. If more than 0, then set the image URL to the thumbnail of the first image. Otherwise, set this field to null so we don't render an image on the page.
           item.content.descriptiveNonRepeating.online_media ? (item.content.descriptiveNonRepeating.online_media.mediaCount > 0 ? item.content.descriptiveNonRepeating.online_media.media[0].thumbnail : null) : null,
@@ -84,7 +84,6 @@ function getArtworkResults(req, res) {
           item.content.freetext.notes ? (item.content.freetext.notes[0].content ? item.content.freetext.notes[0].content : null) : null
         ));
       });
-      //console.log('SMITHSONIAN ARTWORKS: ', allArtworks);
       return allArtworks;
     })
     //then, take the array of Artwork objects we created from the Smithsonian superagent call, and send it to get MET results
@@ -114,11 +113,10 @@ function getArtworkResults(req, res) {
               //if it doesn't, then just ignore that result.
               data.forEach(objectData => {
                 if (objectData.body.artistDisplayName.toLowerCase().indexOf(artist.toLowerCase()) > -1) {
-                  //console.log('THE MET API ARTIST NAME = ', objectData.body.artistDisplayName);
                   //the user's search query matches the artist's name, so create the object and push it into the allArtworks array.
                   allArtworks.push(new ArtWork(
                     objectData.body.repository,
-                    objectData.body.artistDisplayName,
+                    objectData.body.artistDisplayName? objectData.body.artistDisplayName : artist,
                     objectData.body.title,
                     objectData.body.primaryImage,
                     null
@@ -141,10 +139,10 @@ function getArtworkResults(req, res) {
                   //get the first result, and get the artist id from the "self" link by removing everything before the id (which is the last part of the href url)
                   var artistID = data.body._embedded.results[0]._links.self.href.slice(data.body._embedded.results[0]._links.self.href.indexOf('artists/') + 8, data.body._embedded.results[0]._links.self.href.length);
                   //get the artist full name so we can display it to the user.
-                  var artistName = data.body._embedded.results[0].name;
+                  //if the name is empty, use the user's search query
+                  var artistName = data.body._embedded.results[0].name ? data.body._embedded.results[0].name : artist;
                   //todo: we can improve this by getting all the artists and asking which one they mean, or just showing all the artworks by people of that name.
                   //Caveat: gotta figure out how to do a regular expression for a "word" (\b) with the dynamic artist name search query
-                  //console.log('ARTIST ID = ', artistID);
                   let url = `https://api.artsy.net/api/artworks?artist_id=${artistID}`;
                   //now that we have the artist ID, get all that artist's artworks from Artsy (only returns 10 I believe)
                   superagent.get(url)
@@ -169,78 +167,23 @@ function getArtworkResults(req, res) {
                       res.render('pages/artworks', { artworks: data, query: artist });
                       return data;
                     })
-                    .then(data => {
-                      let sql = `SELECT id FROM artists WHERE name=$1;`;
-                      let values = [artist];
-                      client.query(sql, values)
-                        .then(result => {
-                          console.log('id of artist', result.rows);
-                          if (result.rows.length === 0) {
-                            let addArtistsToTable = `INSERT INTO artists (name) VALUES ($1) RETURNING id;`;
-                            let values = [artist];
-                            client.query(addArtistsToTable, values)
-                              .then(result => {
-                                console.log('id inserted into artists table', result.rows[0]);
-                                var artistsId = result.rows[0].id;
-                                data.forEach(artwork => {
-                                  let sql = `SELECT * FROM museums WHERE name=$1;`;
-                                  let values = [artwork.museum];
-                                  console.log(values);
-                                  client.query(sql, values)
-                                    .then(result => {
-                                      console.log('museum id if museum is already in the db ', result.rows);
-                                      if (result.rows.length === 0) {
-                                        let addMuseumsTable = `INSERT INTO museums (name) VALUES ($1) RETURNING id;`;
-                                        let values = [artwork.museum];
-                                        client.query(addMuseumsTable, values)
-                                          .then(result => {
-                                            console.log('id inserted into museums table', result.rows[0]);
-                                            artwork.museumId = result.rows[0].id;
-                                            let addToArtworksTable = `INSERT INTO artworks (title, description, image, artist_id, museum_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
-                                            let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artistsId, artwork.museumId];
-                                            console.log(values);
-                                            client.query(addToArtworksTable, values)
-                                              .then(result => {
-                                                console.log(result.rows);
-                                              });
-                                          });
-                                      } else {
-                                        artwork.museumId = result.rows[0].id;
-                                        let addToArtworksTable = `INSERT INTO artworks (title, description, image, artist_id, museum_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;`;
-                                        let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artistsId, artwork.museumId];
-                                        client.query(addToArtworksTable, values)
-                                          .then(result => {
-                                            console.log(result.rows);
-                                          });
-                                      }
-                                    }
-                                    );
-                                });
-
-                              });
-                          }
-                        });
-                    });
-                });
-            });
-        });
-    });
+                    .then(allArtworks => {
+                      let sql = `INSERT INTO artworks (title, description, image, artist, museum, city) VALUES ($1,$2,$3,$4,$5,$6);`;
+                      allArtworks.forEach(artwork => {
+                        let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artwork.artistName, artwork.museum, ''];
+                        client.query(sql, values);
+                      });
+                    })
+                    .catch(error => handleErrors(error,res));
+                })
+                .catch(error => handleErrors(error,res));
+            })
+            .catch(error => handleErrors(error,res));
+        })
+        .catch(error => handleErrors(error,res));
+    })
+    .catch(error => handleErrors(error,res));
 }
-
-//check whether this artist is already in the database//
-
-//if YES, do nothing, if NO, add to the artists table, get the ID back//
-//INSERT INTO artwork//
-
-//loop over data array, check if museum that is in the data array is in the database//
-
-//if YES take museum ID and insert into artwork table the current object(from the data array taht we are looking at)//
-
-//if NO add museum and get museum ID (INSERT INTO)//
-
-//now I have the artist ID and the museum ID, and the object itself (at whatever index)//
-
-//INSERT all INTO artwork table//
 
 function handleErrors(error, res) {
   //render the error page with the provided error message.
@@ -249,6 +192,7 @@ function handleErrors(error, res) {
     res.render('pages/error', { error: error });
   }
 }
+
 
 //catch all for unknown routes
 //app.get('*', handleErrors);
