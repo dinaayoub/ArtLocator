@@ -50,7 +50,6 @@ function showHomepage(req, res) {
       let sql2 = `SELECT city, COUNT(*) AS totalartworks FROM artworks GROUP BY city ORDER BY totalartworks DESC`;
       client.query(sql2)
         .then(results => {
-          console.log(results.rows);
           //then render the page
           res.render('pages/index', { cities: results.rows, artists: artistsResult.rows });
         })
@@ -69,7 +68,6 @@ function showArtwork(req, res) {
 }
 
 function deleteArtists(request, response) {
-  console.log('request.body', request.params.artistName);
   let artistName = request.params.artistName;
   const SQL = 'DELETE FROM artworks WHERE artist=$1'
   const VALUES = [artistName];
@@ -122,7 +120,6 @@ function getArtworkResults(req, res) {
           'Washington D.C.'
         ));
       });
-      console.log(allArtworks);
       return allArtworks;
 
     })
@@ -166,7 +163,6 @@ function getArtworkResults(req, res) {
                   ));
                 }
               });
-              console.log(allArtworks);
               //we are done adding the MET results to the artworks array. Return it so that the next .then block can use it.
               return allArtworks;
             })
@@ -265,7 +261,7 @@ function handleErrors(error, res) {
 }
 
 //catch all for unknown routes
-//app.get('*', handleErrors);
+app.get('*', handleErrors);
 
 //start up the server
 app.listen(PORT, () => {
