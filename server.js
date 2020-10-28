@@ -172,7 +172,7 @@ function getArtworkResults(req, res) {
                           artwork.collecting_institution, //this is the museum name
                           artistName, //the artist name we got from the previous API call
                           artwork.title, //the artwork title
-                          artwork._links.thumbnail.href.replace('medium', 'larger'), //the thumbnail, but to match all the others I'm getting the largest version of the image instead of the default medium one
+                          artwork._links.thumbnail ? artwork._links.thumbnail.href.replace('medium', 'larger') : null, //the thumbnail, but to match all the others I'm getting the largest version of the image instead of the default medium one
                           null //they don't seem to have a description for artworks so set it to null :(
                         ));
                       })
@@ -184,6 +184,7 @@ function getArtworkResults(req, res) {
                       return data;
                     })
                     .then(data => {
+
                       let sql = `SELECT id FROM artists WHERE name=$1;`;
                       let values = [artist];
                       client.query(sql, values)
@@ -197,12 +198,14 @@ function getArtworkResults(req, res) {
                                 console.log('id inserted into artists table', result.rows[0]);
                                 var artistsId = result.rows[0].id;
                                 data.forEach(artwork => {
+
                                   let sql = `SELECT id FROM museums WHERE name=$1;`;
                                   let values = [artwork.museum];
                                   console.log(values);
                                   return client.query(sql, values)
                                     .then(result => {
                                       console.log('id of museum', result.rows);
+
                                       if (result.rows.length === 0) {
                                         let addMuseumsTable = `INSERT INTO museums (name) VALUES ($1) RETURNING id;`;
                                         let values = [artwork.museum];
@@ -230,6 +233,7 @@ function getArtworkResults(req, res) {
                                     }
                                     );
                                 });
+
                               });
                           }
                         });
