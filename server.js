@@ -70,7 +70,7 @@ function showArtwork(req, res) {
 
 function deleteArtists(request, response) {
   let artistName = request.params.artistName;
-  const SQL = 'DELETE FROM artworks WHERE artist=$1;';
+  const SQL = 'DELETE FROM artworks WHERE artist=$1;'
   const VALUES = [artistName];
   client.query(SQL, VALUES)
     .then(() => {

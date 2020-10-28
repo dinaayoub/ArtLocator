@@ -27,7 +27,7 @@ h2{
     text-align: center;
     
 }
-#searchBar{
+.searchBar{
     margin:auto;
     padding:auto;
     text-align: center;
@@ -46,35 +46,46 @@ h2{
     
 }
 footer {
-    position: relative;
     align-items: center;
     font-size: 12pt;
     font-style: italic;
     text-align: center;
-    bottom: 0;
-    margin-bottom: -50px; 
+    align-content: center;
     color: #3e4134;
 }
+.footer-container{
+    clear:both;
+    widows: 100%;
+    z-index:1;
+
+}
 .artworkDiv{
+    align-content: center;
     margin: 0px;
     padding:0px;
-    height:400px;
-    width:400px;
     border-radius:4px;
     background-color:#d3d7d5;
     color: #3e4134;
-    float:left;
-    clear: both;
+    clear: left;
+    display:inline-block;
 }
 .artworkImage{
     align-self: center;
-    height:290px;
-    width:290px;
-    margin-left: 55px;
 }
 .artistResult{
     position: relative;
     margin-left:0px ;
     padding: 0px ;
-    width:400px;
+    width:30.25vw;
+}
+.artworkTitle{
+text-align: center;
+color:#3e4134;
+}
+.artistResult{
+    float:left;
+}
+.museum{
+    text-align: center;
+    color:#3e4134;
 }
