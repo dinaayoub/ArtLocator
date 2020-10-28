@@ -16,7 +16,6 @@ app.use(express.static('./public'));
 app.use(methodOverride('_method'));
 app.set('view engine', 'ejs');
 
-
 //server side configs
 env.config();
 const PORT = process.env.PORT || 3300;
@@ -30,15 +29,17 @@ client.on('error', error => handleErrors(error));
 app.get('/', showHomepage);
 app.post('/searches', getArtworkResults);
 app.get('/showArtworks/:name', showArtwork);
+app.post('/delete/:artistName', deleteArtists)
 
 
 //object constructors
-function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescription) {
+function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescription, city) {
   this.museum = museum;
   this.artistName = artistName;
   this.artworkImage = artworkImage;
   this.artworkDescription = artworkDescription;
   this.artworkTitle = artworkTitle;
+  this.city = city;
 }
 
 //functions
@@ -47,8 +48,14 @@ function showHomepage(req, res) {
   let sql = `SELECT DISTINCT artist FROM artworks;`;
   client.query(sql)
     .then(artistsResult => {
-      //then render the page
-      res.render('pages/index', { artists: artistsResult.rows });
+      let sql2 = `SELECT city, COUNT(*) AS totalartworks FROM artworks GROUP BY city ORDER BY totalartworks DESC`;
+      client.query(sql2)
+        .then(results => {
+          console.log(results.rows);
+          //then render the page
+          res.render('pages/index', { cities: results.rows, artists: artistsResult.rows });
+        })
+        .catch(error => handleErrors(error,res));
     });
 }
 
@@ -60,8 +67,26 @@ function showArtwork(req, res) {
     .then(artworksResults => {
       console.log(artworksResults.rows);
       res.render('pages/savedArtist', { artworks: artworksResults.rows });
+    })
+    .catch(error => handleErrors(error,res));
+
+
+};
+function deleteArtists(request,response) {
+  console.log('request.body',request.params.artistName);
+  let artistName = request.params.artistName;
+  const SQL = 'DELETE FROM artworks WHERE artist=$1'
+  const VALUES = [artistName];
+  client.query(SQL,VALUES)
+    .then( ()=> {
+    
+      response.status(200).redirect('/');
+    })
+    .catch( error => {
+      console.error(error.message);
     });
-}
+  };
+
 
 function getArtworkResults(req, res) {
   //get the term the user searched for
@@ -81,22 +106,30 @@ function getArtworkResults(req, res) {
       var allArtworks = [];
       //narrow down the results to those where the artist name matches the search query by using .filter on the returned array.
       //this API doesn't let you narrow the search to be by artist name only, so we have to do it manually here.
-      var rows = smithsonianData.body.response.rows.length > 0 ? smithsonianData.body.response.rows.filter(item => item.content.freetext.name[0].content.toLowerCase().indexOf(artist.toLowerCase()) > -1) : [];
-
+      var rows = [];
+      if (smithsonianData.body.response.rows.length > 0) {
+        rows = smithsonianData.body.response.rows.filter(item => {
+          if (item.content.freetext.name && item.content.freetext.name.length > 0) {
+            return item.content.freetext.name[0].content.toLowerCase().indexOf(artist.toLowerCase()) > -1;
+          }
+        });
+      }
       //now iterate on the remaining rows and add the artworks to the array we created
       rows.forEach(item => {
-        //check if the item's artist name matches the search query, because these APIs don't let you limit to artist name search only.
         allArtworks.push(new ArtWork(
           item.content.descriptiveNonRepeating.data_source,
           artist,
           item.title,
           //if there is online_media, then check how many items are in it. If more than 0, then set the image URL to the thumbnail of the first image. Otherwise, set this field to null so we don't render an image on the page.
-          item.content.descriptiveNonRepeating.online_media ? (item.content.descriptiveNonRepeating.online_media.mediaCount > 0 ? item.content.descriptiveNonRepeating.online_media.media[0].thumbnail : null) : null,
+          (item.content.descriptiveNonRepeating.online_media && item.content.descriptiveNonRepeating.online_media.mediaCount > 0) ? item.content.descriptiveNonRepeating.online_media.media[0].thumbnail : null,
           //if there are notes describing the artwork, save the first note's content.  Otherwise, set this field to null so we don't display it on the page
-          item.content.freetext.notes ? (item.content.freetext.notes[0].content ? item.content.freetext.notes[0].content : null) : null
+          (item.content.freetext.notes && item.content.freetext.notes.length) > 0 ? (item.content.freetext.notes[0].content ? item.content.freetext.notes[0].content : null) : null,
+          'Washington D.C.'
         ));
       });
+      console.log(allArtworks);
       return allArtworks;
+
     })
     //------------------------------------------------------------------------------
     // Get the results for the search query from the MET's api
@@ -111,7 +144,7 @@ function getArtworkResults(req, res) {
       var promises = [];
       superagent.get(url)
         .then(metData => {
-          var rows = metData.body.objectIDs;
+          var rows = metData.body.objectIDs ? metData.body.objectIDs : [];
           //for each object ID we get back from the MET query, we now need to create another superagent call to get the details of that object
           rows.forEach(item => {
             //set the url for each item and push the superagent.get call into the promises array
@@ -122,7 +155,6 @@ function getArtworkResults(req, res) {
           Promise.all(promises)
             .then(data => {
               //now we have "data" which is an aggregate of all the results from the superagent.get calls of each artwork
-
               //for each object in data, check whether its artist field matches the search query,
               //if it does, then create an object for it and add it to the artworks array.
               //if it doesn't, then just ignore that result.
@@ -134,10 +166,12 @@ function getArtworkResults(req, res) {
                     artist,
                     objectData.body.title,
                     objectData.body.primaryImage,
-                    null
+                    null,
+                    'New York NY'
                   ));
                 }
               });
+              console.log(allArtworks);
               //we are done adding the MET results to the artworks array. Return it so that the next .then block can use it.
               return allArtworks;
             })
@@ -147,16 +181,26 @@ function getArtworkResults(req, res) {
             .then(data => {
               //connect to the Artsy API using the header data they require
               let allArtworks = data;
-              let url = `https://api.artsy.net/api/search?q=${artist}+more:pagemap:metatags-og_type:Artist`;
+              let url = `https://api.artsy.net/api/search?q=${artist}+more:pagemap:metatags-og_type:artist`;
               //this will return the list of artists and "shows", whatever that means...
               superagent.get(url)
                 //authentication with Artsy requires setting these headers. TODO: make the token something we get as well when it expires.
                 .set('X-XAPP-Token', process.env.ARTSY_TOKEN)
                 .set('Accept', 'application/vnd.artsy-v2+json')
                 .then(data => {
-                  //get the first result, and get the artist id from the "self" link by removing everything before the id (which is the last part of the href url)
-                  var artistID = data.body._embedded.results[0]._links.self.href.slice(data.body._embedded.results[0]._links.self.href.indexOf('artists/') + 8, data.body._embedded.results[0]._links.self.href.length);
-                  //todo: we can improve this by getting all the artists and asking which one they mean, or just showing all the artworks by people of that name.
+                  //get the first "artist" result, and get the artist id from the "self" link by removing everything before the id (which is the last part of the href url)
+                  var artistID;
+                  for (let i = 0; i < data.body._embedded.results.length; i++) {
+                    //if the current result's type is artist and it has a self link, then get the artist ID from it.
+                    if (data.body._embedded.results[i].og_type === 'artist' && data.body._embedded.results[i]._links.self.href) {
+                      //slice the link to get the ID of the artist which comes after "artists/" in the URL
+                      artistID = data.body._embedded.results[i]._links.self.href.slice(data.body._embedded.results[i]._links.self.href.indexOf('artists/') + 8, data.body._embedded.results[i]._links.self.href.length);
+                      //quit the for loop because we're just choosing the first artist.
+                      //todo: we can improve this by getting all the artists and asking which one they mean, or just showing all the artworks by people of that name.
+                      break;
+                    }
+                  }
+
                   let url = `https://api.artsy.net/api/artworks?artist_id=${artistID}`;
                   //now that we have the artist ID, get all that artist's artworks from Artsy (only returns 10 I believe)
                   superagent.get(url)
@@ -166,12 +210,18 @@ function getArtworkResults(req, res) {
                     .then(data => {
                       //loop through the artworks returned and create an artwork object for each of them
                       data.body._embedded.artworks.forEach(artwork => {
+                        //find the city name if it is provided in the collecting institution field
+                        let city = '';
+                        if (artwork.collecting_institution && artwork.collecting_institution.indexOf(', ') > -1) {
+                          city = artwork.collecting_institution.slice(artwork.collecting_institution.indexOf(', ') + 2, artwork.collecting_institution.length);
+                        }
                         allArtworks.push(new ArtWork(
                           artwork.collecting_institution, //this is the museum name
                           artist, //the artist name we got from the previous API call
                           artwork.title, //the artwork title
                           artwork._links.thumbnail ? artwork._links.thumbnail.href.replace('medium', 'larger') : null, //the thumbnail, but to match all the others I'm getting the largest version of the image instead of the default medium one
-                          null //they don't seem to have a description for artworks so set it to null :(
+                          null, //they don't seem to have a description for artworks so set it to null :(,
+                          city
                         ));
                       })
                       return allArtworks;
@@ -191,7 +241,7 @@ function getArtworkResults(req, res) {
                       //todo: how do we know if this artist is already in the db? we will be creating a lot of duplicates
                       let sql = `INSERT INTO artworks (title, description, image, artist, museum, city) VALUES ($1,$2,$3,$4,$5,$6);`;
                       allArtworks.forEach(artwork => {
-                        let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artwork.artistName, artwork.museum, ''];
+                        let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artwork.artistName, artwork.museum, artwork.city];
                         client.query(sql, values);
                       });
                     })
@@ -206,16 +256,21 @@ function getArtworkResults(req, res) {
     .catch(error => handleErrors(error, res));
 }
 
+
 function handleErrors(error, res) {
   //render the error page with the provided error message.
   console.error('error message: ', error.message);
+  console.error('file name: ', error.fileName);
+  console.error('stack trace: ', error.lineNumber);
+  console.error('stack trace: ', error.stack);
+
   if (res) {
     res.render('pages/error', { error: error });
   }
 }
 
 //catch all for unknown routes
-app.get('*', handleErrors);
+//app.get('*', handleErrors);
 
 //start up the server
 app.listen(PORT, () => {

@@ -1,7 +1,7 @@
 body {
     max-width: 1060px;
     margin: auto;
-    background-color: rgb(245, 241, 241);
+    background-color: #d0c6ba;
     padding: 10px;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
@@ -9,15 +9,72 @@ body {
 h1{
     font-size: 28pt;
     text-align: center;
-    padding: 10px 0px;
+    padding: 10px;
+    color: #3e4134;
+    background-color: #b4ad95;
+    border: solid 3px #605756;
+    border-radius: 10px;
+
 }
 
 h2{
     font-size: 24pt;
     padding: 10px 0px;
+    color: #d3d7d5;
+    background-color:#605756;
+    border: solid 3px #b4ad95;
+    border-radius: 10px;
+    text-align: center;
+    
+}
+#searchBar{
+    margin:auto;
+    padding:auto;
+    text-align: center;
+    align-content: center;
+}
+.searchQuery{
+    width:500px;
+    text-align: center;
+    background-color:#3e4134 ;
+    color:#d3d7d5;
+    border-radius: 5px;
+}
+.searchButton{
+    background-color: #b4ad95;
+    border-radius: 4px;
+    
 }
 footer {
+    position: relative;
+    align-items: center;
     font-size: 12pt;
     font-style: italic;
     text-align: center;
+    bottom: 0;
+    margin-bottom: -50px; 
+    color: #3e4134;
+}
+.artworkDiv{
+    margin: 0px;
+    padding:0px;
+    height:400px;
+    width:400px;
+    border-radius:4px;
+    background-color:#d3d7d5;
+    color: #3e4134;
+    float:left;
+    clear: both;
+}
+.artworkImage{
+    align-self: center;
+    height:290px;
+    width:290px;
+    margin-left: 55px;
+}
+.artistResult{
+    position: relative;
+    margin-left:0px ;
+    padding: 0px ;
+    width:400px;
 }
