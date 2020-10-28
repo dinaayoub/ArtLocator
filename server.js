@@ -54,7 +54,7 @@ function showHomepage(req, res) {
           //then render the page
           res.render('pages/index', { cities: results.rows, artists: artistsResult.rows });
         })
-        .catch(error => handleErrors(error,res));
+        .catch(error => handleErrors(error, res));
     });
 }
 
@@ -65,24 +65,22 @@ function showArtwork(req, res) {
     .then(artworksResults => {
       res.render('pages/savedArtist', { artworks: artworksResults.rows });
     })
-    .catch(error => handleErrors(error,res));
+    .catch(error => handleErrors(error, res));
+}
 
-
-};
-function deleteArtists(request,response) {
-  console.log('request.body',request.params.artistName);
+function deleteArtists(request, response) {
+  console.log('request.body', request.params.artistName);
   let artistName = request.params.artistName;
   const SQL = 'DELETE FROM artworks WHERE artist=$1'
   const VALUES = [artistName];
-  client.query(SQL,VALUES)
-    .then( ()=> {
-    
+  client.query(SQL, VALUES)
+    .then(() => {
       response.status(200).redirect('/');
     })
-    .catch( error => {
+    .catch(error => {
       console.error(error.message);
     });
-  };
+}
 
 
 function getArtworkResults(req, res) {
