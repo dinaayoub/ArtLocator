@@ -22,8 +22,6 @@ env.config();
 const PORT = process.env.PORT || 3300;
 const client = new pg.Client(process.env.DATABASE_URL);
 
-//global variables
-
 //connect to db
 client.connect();
 client.on('error', error => handleErrors(error));
@@ -34,7 +32,6 @@ app.post('/searches', getArtworkResults);
 app.get('/showArtworks/:name', showArtwork);
 
 //object constructors
-
 function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescription) {
   this.museum = museum;
   this.artistName = artistName;
