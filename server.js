@@ -31,6 +31,7 @@ client.on('error', error => handleErrors(error));
 //handle application routes
 app.get('/', showHomepage);
 app.post('/searches', getArtworkResults);
+app.get('/showArtworks/:id', showArtWork);
 
 //object constructors
 
@@ -44,10 +45,23 @@ function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescript
 
 //functions
 function showHomepage(req, res) {
+  let sql = `SELECT * FROM artists;`;
+  client.query(sql)
+    .then(artistsResult => {
+      res.render('pages/index', { artists: artistsResult.rows });
+    });
   //retrieve favorites here
 
   //then render the page
-  res.render('pages/index');
+}
+
+function showArtwork(req, res) {
+  let sql = `SELECT * FROM artworks JOIN museums ON artworks.museum_id=museumS.id JOIN artists ON artworks.artist_id=artists.id WHERE artist_id=$1;`;
+  client.query(sql)
+    .then(artworksResults => {
+      res.render('pages/savedArtist', { artworks: artworksResults.rows });
+    });
+
 }
 
 function getArtworkResults(req, res) {
@@ -184,12 +198,14 @@ function getArtworkResults(req, res) {
                                 console.log('id inserted into artists table', result.rows[0]);
                                 var artistsId = result.rows[0].id;
                                 data.forEach(artwork => {
-                                  let sql = `SELECT * FROM museums WHERE name=$1;`;
+
+                                  let sql = `SELECT id FROM museums WHERE name=$1;`;
                                   let values = [artwork.museum];
                                   console.log(values);
-                                  client.query(sql, values)
+                                  return client.query(sql, values)
                                     .then(result => {
-                                      console.log('museum id if museum is already in the db ', result.rows);
+                                      console.log('id of museum', result.rows);
+
                                       if (result.rows.length === 0) {
                                         let addMuseumsTable = `INSERT INTO museums (name) VALUES ($1) RETURNING id;`;
                                         let values = [artwork.museum];

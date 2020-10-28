@@ -25,5 +25,13 @@ CREATE TABLE artworks (
     CONSTRAINT museum_id FOREIGN KEY(id) REFERENCES museums(id)
 );
 
+INSERT INTO artists (name) VALUES ('I am here');
 
+INSERT INTO artists (name) VALUES ('I am here');
+
+INSERT INTO artists (name) VALUES ('I am here');
+
+INSERT INTO artists (name) VALUES ('I am here');
+
+INSERT INTO artists (name) VALUES ('I am here');
 
