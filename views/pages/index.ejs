@@ -10,7 +10,7 @@
         <main>
             <%- include('partials/searchBar') %>
             <% artists.forEach(nameOfArtist => { %>
-            <a href=><p><%= nameOfArtist.name %></p></a>
+            <a href="showArtworks/<%=nameOfArtist.artist%>"><p><%= nameOfArtist.artist %></p></a>
            <% }) %>
         </main>
         <footer>
