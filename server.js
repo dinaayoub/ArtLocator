@@ -31,7 +31,7 @@ client.on('error', error => handleErrors(error));
 //handle application routes
 app.get('/', showHomepage);
 app.post('/searches', getArtworkResults);
-app.get('/showArtworks/:id', showArtwork);
+app.get('/showArtworks/:name', showArtwork);
 
 //object constructors
 
@@ -55,12 +55,12 @@ function showHomepage(req, res) {
 }
 
 function showArtwork(req, res) {
-  let sql = `SELECT * FROM artworks JOIN museums ON artworks.museum_id=museumS.id JOIN artists ON artworks.artist_id=artists.id WHERE artist_id=$1;`;
-  client.query(sql)
+  let sql = `SELECT * FROM artworks WHERE artist=$1;`;
+  let values = [req.param.name];
+  client.query(sql, values)
     .then(artworksResults => {
       res.render('pages/savedArtist', { artworks: artworksResults.rows });
     });
-
 }
 
 function getArtworkResults(req, res) {
