@@ -30,6 +30,7 @@ client.on('error', error => handleErrors(error));
 app.get('/', showHomepage);
 app.post('/searches', getArtworkResults);
 app.get('/showArtworks/:name', showArtwork);
+app.post('/delete/:artistName', deleteArtists)
 
 //object constructors
 function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescription) {
@@ -48,7 +49,12 @@ function showHomepage(req, res) {
     .then(artistsResult => {
       //then render the page
       res.render('pages/index', { artists: artistsResult.rows });
-    });
+    })
+    .catch(error => handleErrors(error,res));
+
+  //retrieve favorites here
+
+  //then render the page
 }
 
 function showArtwork(req, res) {
@@ -57,8 +63,26 @@ function showArtwork(req, res) {
   client.query(sql, values)
     .then(artworksResults => {
       res.render('pages/savedArtist', { artworks: artworksResults.rows });
+    })
+    .catch(error => handleErrors(error,res));
+
+
+};
+function deleteArtists(request,response) {
+  console.log('request.body',request.params.artistName);
+  let artistName = request.params.artistName;
+  const SQL = 'DELETE FROM artworks WHERE artist=$1'
+  const VALUES = [artistName];
+  client.query(SQL,VALUES)
+    .then( ()=> {
+    
+      response.status(200).redirect('/');
+    })
+    .catch( error => {
+      console.error(error.message);
     });
-}
+  };
+
 
 function getArtworkResults(req, res) {
   //get the term the user searched for
@@ -202,6 +226,7 @@ function getArtworkResults(req, res) {
     })
     .catch(error => handleErrors(error, res));
 }
+
 
 function handleErrors(error, res) {
   //render the error page with the provided error message.
