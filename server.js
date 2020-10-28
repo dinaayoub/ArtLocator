@@ -46,8 +46,14 @@ function showHomepage(req, res) {
   let sql = `SELECT DISTINCT artist FROM artworks;`;
   client.query(sql)
     .then(artistsResult => {
-      //then render the page
-      res.render('pages/index', { artists: artistsResult.rows });
+      let sql2 = `SELECT city, COUNT(*) AS totalartworks FROM artworks GROUP BY city ORDER BY totalartworks DESC`;
+      client.query(sql2)
+        .then(results => {
+          console.log(results.rows);
+          //then render the page
+          res.render('pages/index', { cities: results.rows, artists: artistsResult.rows });
+        })
+        .catch(error => handleErrors(error,res));
     });
 }
 
@@ -96,9 +102,10 @@ function getArtworkResults(req, res) {
           (item.content.descriptiveNonRepeating.online_media && item.content.descriptiveNonRepeating.online_media.mediaCount > 0) ? item.content.descriptiveNonRepeating.online_media.media[0].thumbnail : null,
           //if there are notes describing the artwork, save the first note's content.  Otherwise, set this field to null so we don't display it on the page
           (item.content.freetext.notes && item.content.freetext.notes.length) > 0 ? (item.content.freetext.notes[0].content ? item.content.freetext.notes[0].content : null) : null,
-          'Washington, D.C.'
+          'Washington D.C.'
         ));
       });
+      console.log(allArtworks);
       return allArtworks;
 
     })
@@ -138,10 +145,11 @@ function getArtworkResults(req, res) {
                     objectData.body.title,
                     objectData.body.primaryImage,
                     null,
-                    'New York, NY'
+                    'New York NY'
                   ));
                 }
               });
+              console.log(allArtworks);
               //we are done adding the MET results to the artworks array. Return it so that the next .then block can use it.
               return allArtworks;
             })
@@ -211,7 +219,7 @@ function getArtworkResults(req, res) {
                       //todo: how do we know if this artist is already in the db? we will be creating a lot of duplicates
                       let sql = `INSERT INTO artworks (title, description, image, artist, museum, city) VALUES ($1,$2,$3,$4,$5,$6);`;
                       allArtworks.forEach(artwork => {
-                        let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artwork.artistName, artwork.museum, ''];
+                        let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artwork.artistName, artwork.museum, artwork.city];
                         client.query(sql, values);
                       });
                     })

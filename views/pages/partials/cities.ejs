@@ -1,0 +1,8 @@
+<h2>Cities to visit</h2>
+<ul>
+    <% cities.forEach(city => {%>
+    <li><% var cityName; %>
+        <%if (city.city==='') {cityName = "Unknown location";} else {cityName=city.city;}%>
+        <%= cityName %> - <%= city.totalartworks%> Artworks</li>
+    <% }) %>
+</ul>
