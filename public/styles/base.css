@@ -14,6 +14,8 @@ h1{
     background-color: #b4ad95;
     border: solid 3px #605756;
     border-radius: 10px;
+    margin: 5px;
+    text-shadow: 2px 2px 5px #605756;
 
 }
 
@@ -25,15 +27,16 @@ h2{
     border: solid 3px #b4ad95;
     border-radius: 10px;
     text-align: center;
+    margin: 5px;
+    text-shadow: 2px 2px 5px #b4ad95;
     
 }
 .searchBar{
-    margin:auto;
-    padding:auto;
     text-align: center;
     align-content: center;
 }
 .searchQuery{
+    font-size: 22pt;
     width:500px;
     text-align: center;
     background-color:#3e4134 ;
@@ -43,6 +46,16 @@ h2{
 .searchButton{
     background-color: #b4ad95;
     border-radius: 4px;
+    font-size: 18pt;
+    
+}
+.deleteButton{
+    background-color: #b4ad95;
+    border-radius: 5px;
+    position: absolute;
+    top:2px;
+    right:10px
+
     
 }
 footer {
@@ -81,11 +94,40 @@ footer {
 .artworkTitle{
 text-align: center;
 color:#3e4134;
+font-size: 16pt;
+margin:8px;
+text-shadow: 2px 2px 5px #3e4134;
+
 }
 .artistResult{
     float:left;
 }
 .museum{
+    text-align: center;
+    color:#3e4134;
+}
+.nameOfArtist{
+    background-color:#b4ad95;
+    border: solid 2px #3e4134;
+    border-radius: 10px;
+    text-align: center;
+    color:#3e4134;
+    font-size: 16pt;
+    margin:3px;
+}
+#delete-artist{
+    position: relative;
+}
+.cities{
+    background-color:#b4ad95;
+    border: solid 2px #3e4134;
+    border-radius: 10px;
+    text-align: center;
+    color:#3e4134;
+    font-size: 16pt;
+    margin:3px;
+}
+.artworkDescription{
     text-align: center;
     color:#3e4134;
 }
