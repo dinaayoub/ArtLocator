@@ -14,9 +14,13 @@
         <h2>Favorites</h2>
         <ul>
             <% artists.forEach(nameOfArtist => { %>
-            <li><a href="showArtworks/<%=nameOfArtist.artist%>">
+            <li>
+                <form id="delete-artist" action='/delete/<%=nameOfArtist.artist%>' method='post'></form>
+                <a href="showArtworks/<%=nameOfArtist.artist%>">
                     <p><%= nameOfArtist.artist %></p>
                 </a>
+                <button type='submit'>Delete</button>
+            </form>
             </li>
             <% }) %>
         </ul>
@@ -25,8 +29,7 @@
     <footer>
         <%- include('../layout/footer') %>
     </footer>
-</body>
-
+    </body>
 </html>
 
 <!-- HOMEPAGE -->
