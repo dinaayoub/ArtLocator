@@ -9,9 +9,14 @@
         </header>
         <main>
             <%- include('partials/searchBar') %>
+            <% artists.forEach(nameOfArtist => { %>
+            <a href=><p><%= nameOfArtist.name %></p></a>
+           <% }) %>
         </main>
         <footer>
             <%- include('../layout/footer') %>
         </footer>
     </body>
 </html>
+
+<!-- HOMEPAGE -->

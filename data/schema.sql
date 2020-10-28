@@ -7,5 +7,13 @@ CREATE TABLE artworks (
     museum VARCHAR(255)
 );
 
+INSERT INTO artists (name) VALUES ('I am here');
 
+INSERT INTO artists (name) VALUES ('I am here');
+
+INSERT INTO artists (name) VALUES ('I am here');
+
+INSERT INTO artists (name) VALUES ('I am here');
+
+INSERT INTO artists (name) VALUES ('I am here');
 

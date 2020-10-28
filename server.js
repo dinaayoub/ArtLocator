@@ -31,6 +31,7 @@ client.on('error', error => handleErrors(error));
 //handle application routes
 app.get('/', showHomepage);
 app.post('/searches', getArtworkResults);
+app.get('/showArtworks/:id', showArtWork);
 
 //object constructors
 
@@ -44,10 +45,23 @@ function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescript
 
 //functions
 function showHomepage(req, res) {
+  let sql = `SELECT * FROM artists;`;
+  client.query(sql)
+    .then(artistsResult => {
+      res.render('pages/index', { artists: artistsResult.rows });
+    });
   //retrieve favorites here
 
   //then render the page
-  res.render('pages/index');
+}
+
+function showArtwork(req, res) {
+  let sql = `SELECT * FROM artworks JOIN museums ON artworks.museum_id=museumS.id JOIN artists ON artworks.artist_id=artists.id WHERE artist_id=$1;`;
+  client.query(sql)
+    .then(artworksResults => {
+      res.render('pages/savedArtist', { artworks: artworksResults.rows });
+    });
+
 }
 
 function getArtworkResults(req, res) {
@@ -183,6 +197,7 @@ function getArtworkResults(req, res) {
         .catch(error => handleErrors(error,res));
     })
     .catch(error => handleErrors(error,res));
+
 }
 
 function handleErrors(error, res) {
