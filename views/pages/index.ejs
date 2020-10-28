@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <%- include('../layout/head') %>
-    </head>
-    <body>
-        <header>
-            <%- include('../layout/header') %>
-        </header>
-        <main>
-            <%- include('partials/searchBar') %>
+
+<head>
+    <%- include('../layout/head') %>
+</head>
+
+<body>
+    <header>
+        <%- include('../layout/header') %>
+    </header>
+    <main>
+        <%- include('partials/searchBar') %>
+        <h2>Favorites</h2>
+        <ul>
             <% artists.forEach(nameOfArtist => { %>
             <form id="delete-artist" action='/delete/<%=nameOfArtist.artist%>' method='post'>
             <a href="showArtworks/<%=nameOfArtist.artist%>"><p><%= nameOfArtist.artist %></p></a>
