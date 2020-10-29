@@ -1,7 +1,8 @@
 <h2>Cities to visit</h2>
 <ul>
     <% cities.forEach(city => {%>
-    <li class= 'cities'><%if (city.city!=='') {%>
+    <%if (city.city!=='') {%>
+    <li class='cities'>
         <%= city.city %> - <%= city.totalartworks%> Artworks</li>
     <% }}) %>
 </ul>

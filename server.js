@@ -23,7 +23,7 @@ const client = new pg.Client(process.env.DATABASE_URL);
 
 //connect to db
 client.connect();
-client.on('error', error => handleErrors(error));
+client.on('error', error => console.log('DATABASE ERROR: ', error));
 
 //handle application routes
 app.get('/', showHomepage);
@@ -34,7 +34,7 @@ app.post('/delete/:artistName', deleteArtists)
 //object constructors
 function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescription, city) {
   this.museum = museum;
-  this.artistName = artistName;
+  this.artistName = titleCase(artistName);
   this.artworkImage = artworkImage;
   this.artworkDescription = artworkDescription;
   this.artworkTitle = artworkTitle;
@@ -44,7 +44,7 @@ function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescript
 //functions
 function showHomepage(req, res) {
   //retrieve favorites here
-  let sql = `SELECT DISTINCT artist FROM artworks;`;
+  let sql = `SELECT DISTINCT artist, UPPER(artist) FROM artworks ORDER BY UPPER(artist);`;
   client.query(sql)
     .then(artistsResult => {
       let sql2 = `SELECT city, COUNT(*) AS totalartworks FROM artworks GROUP BY city ORDER BY totalartworks DESC`;
@@ -78,6 +78,13 @@ function deleteArtists(request, response) {
     .catch(error => {
       console.error(error.message);
     });
+}
+
+function titleCase(str) {
+  str = str.toLowerCase();
+  let array = str.split(' ');
+  let newArray = array.map((word) => word.replace(word[0], word[0].toUpperCase()));
+  return newArray.join(' ');
 }
 
 function getArtworkResults(req, res) {
@@ -264,7 +271,7 @@ function getArtworkResults(req, res) {
                               allArtworks.forEach(artwork => {
                                 let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artwork.artistName, artwork.museum, artwork.city];
                                 client.query(sql, values);
-                              });
+                              })
                             })
                             .catch(error => handleErrors(error, res));
                         })
@@ -291,6 +298,7 @@ function handleErrors(error, res) {
   if (res) {
     res.render('pages/error', { error: error });
   }
+  else console.log('COULDN\'T RENDER TO RES: ', error);
 }
 
 function pageNotFound(req, res) {
