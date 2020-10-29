@@ -61,10 +61,8 @@ function showHomepage(req, res) {
 function showArtwork(req, res) {
   let sql = `SELECT * FROM artworks WHERE artist=$1;`;
   let values = [req.params.name];
-  console.log(req.params.name);
   client.query(sql, values)
     .then(artworksResults => {
-      console.log(artworksResults.rows);
       res.render('pages/savedArtist', { artworks: artworksResults.rows });
     })
     .catch(error => handleErrors(error, res));
@@ -249,7 +247,6 @@ function getArtworkResults(req, res) {
     })
     .catch(error => handleErrors(error, res));
 }
-
 
 function handleErrors(error, res) {
   //render the error page with the provided error message.
