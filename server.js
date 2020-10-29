@@ -23,7 +23,7 @@ const client = new pg.Client(process.env.DATABASE_URL);
 
 //connect to db
 client.connect();
-client.on('error', error => handleErrors(error));
+client.on('error', error => console.log('DATABASE ERROR: ', error));
 
 //handle application routes
 app.get('/', showHomepage);
@@ -264,7 +264,7 @@ function getArtworkResults(req, res) {
                               allArtworks.forEach(artwork => {
                                 let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artwork.artistName, artwork.museum, artwork.city];
                                 client.query(sql, values);
-                              });
+                              })
                             })
                             .catch(error => handleErrors(error, res));
                         })
