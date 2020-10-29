@@ -15,7 +15,7 @@
         <ul>
             <% artists.forEach(nameOfArtist => { %>
             <li>
-                <form id="delete-artist" action='/delete/<%=nameOfArtist.artist%>' method='post'></form>
+                <form id="delete-artist" action='/delete/<%=nameOfArtist.artist%>' method='post'>
                 <a href="showArtworks/<%=nameOfArtist.artist%>">
                     <p><%= nameOfArtist.artist %></p>
                 </a>
