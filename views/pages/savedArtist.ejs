@@ -6,8 +6,8 @@
 <body>
     <%- include('../layout/header') %>
     <% artworks.forEach(artwork => { %>
-        <%- include('../pages/partials/savedArtwork', {artwork: artwork}) %>
-    <% }) %>
+        <%- include('../pages/partials/artwork', {artwork: artwork}) %> 
+   <% }) %>
 </body>
 <footer>
     <%- include('../layout/footer') %>

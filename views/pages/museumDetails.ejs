@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <%- include('../layout/head') %>
+</head>
+<body>
+    <header>
+        <%- include('../layout/header') %>
+    </header>
+    <main>
+        <h2>Museum details</h2>
+        <ul>
+            <% museums.forEach(artwork => { %>
+            <li class="museumsResult">
+                <%- include('partials/museums) %>
+            <a href="/museumDetails/1">TEST</a>
+            </li>
+            <% }) %>
+        </ul>
+    </main>
+    <footer>
+        <%- include('../layout/footer') %>
+    </footer>
+</body>
+</html>
