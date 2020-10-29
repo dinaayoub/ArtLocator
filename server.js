@@ -31,7 +31,6 @@ app.post('/searches', getArtworkResults);
 app.get('/showArtworks/:name', showArtwork);
 app.post('/delete/:artistName', deleteArtists)
 
-
 //object constructors
 function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescription, city) {
   this.museum = museum;
@@ -80,7 +79,6 @@ function deleteArtists(request, response) {
       console.error(error.message);
     });
 }
-
 
 function getArtworkResults(req, res) {
   //get the term the user searched for
@@ -219,23 +217,59 @@ function getArtworkResults(req, res) {
                       return allArtworks;
                     })
                     //------------------------------------------------------------------------------
-                    // Render the page now that we have all the artworks from the different APIs
-                    //------------------------------------------------------------------------------
-                    .then(data => {
-                      //now that we have the allArtworks array returned from the previous .then, render that array to the artworks page.
-                      res.render('pages/artworks', { artworks: data, query: artist });
-                      return data;
-                    })
-                    //------------------------------------------------------------------------------
-                    // Save the artworks to the database
+                    // Get the results for the search query from the Harvard api
                     //------------------------------------------------------------------------------
                     .then(allArtworks => {
-                      //todo: how do we know if this artist is already in the db? we will be creating a lot of duplicates
-                      let sql = `INSERT INTO artworks (title, description, image, artist, museum, city) VALUES ($1,$2,$3,$4,$5,$6);`;
-                      allArtworks.forEach(artwork => {
-                        let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artwork.artistName, artwork.museum, artwork.city];
-                        client.query(sql, values);
-                      });
+                      let url = `https://api.harvardartmuseums.org/person?q="${artist}"&apikey=${process.env.HARVARD_APIKEY}&sort=objectcount&sortorder=desc&`
+                      var artistID;
+                      superagent.get(url)
+                        .then(people => {
+                          if (people.body.records) {
+                            artistID = people.body.records[0].id;
+                          }
+                          return allArtworks;
+                        })
+                        .then(allArtworks => {
+                          let url = `https://api.harvardartmuseums.org/object?apikey=${process.env.HARVARD_APIKEY}&person=${artistID}&classification=Paintings`;
+                          superagent.get(url)
+                            .then(data => {
+                              if (data.body.records) {
+                                data.body.records.forEach(artwork => {
+                                  allArtworks.push(new ArtWork(
+                                    artwork.creditline,
+                                    artist,
+                                    artwork.title,
+                                    artwork.primaryimageurl,
+                                    artwork.labeltext,
+                                    'Boston, MA'
+                                  ))
+                                })
+                              }
+                              return allArtworks;
+                            })
+                            //------------------------------------------------------------------------------
+                            // Render the page now that we have all the artworks from the different APIs
+                            //------------------------------------------------------------------------------
+                            .then(data => {
+                              console.log(data);
+                              //now that we have the allArtworks array returned from the previous .then, render that array to the artworks page.
+                              res.render('pages/artworks', { artworks: data, query: artist });
+                              return data;
+                            })
+                            //------------------------------------------------------------------------------
+                            // Save the artworks to the database
+                            //------------------------------------------------------------------------------
+                            .then(allArtworks => {
+                              //todo: how do we know if this artist is already in the db? we will be creating a lot of duplicates
+                              let sql = `INSERT INTO artworks (title, description, image, artist, museum, city) VALUES ($1,$2,$3,$4,$5,$6);`;
+                              allArtworks.forEach(artwork => {
+                                let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artwork.artistName, artwork.museum, artwork.city];
+                                client.query(sql, values);
+                              });
+                            })
+                            .catch(error => handleErrors(error, res));
+                        })
+                        .catch(error => handleErrors(error, res));
                     })
                     .catch(error => handleErrors(error, res));
                 })
@@ -252,7 +286,7 @@ function handleErrors(error, res) {
   //render the error page with the provided error message.
   console.error('error message: ', error.message);
   console.error('file name: ', error.fileName);
-  console.error('stack trace: ', error.lineNumber);
+  console.error('line number: ', error.lineNumber);
   console.error('stack trace: ', error.stack);
 
   if (res) {
@@ -260,8 +294,14 @@ function handleErrors(error, res) {
   }
 }
 
+function pageNotFound(req, res) {
+  console.error('not found');
+  //res.status(404).send('Oops, can\'t find this page');
+  res.render('pages/error', { error: new Error('Oooops, we couldn\'t find this page.') });
+}
+
 //catch all for unknown routes
-app.get('*', handleErrors);
+app.get('*', pageNotFound);
 
 //start up the server
 app.listen(PORT, () => {
