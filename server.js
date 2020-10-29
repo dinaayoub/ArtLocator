@@ -31,6 +31,7 @@ app.post('/searches', getArtworkResults);
 app.get('/showArtworks/:name', showArtwork);
 app.post('/delete/:artistName', deleteArtists)
 
+
 //object constructors
 function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescription, city) {
   this.museum = museum;
@@ -60,9 +61,11 @@ function showHomepage(req, res) {
 
 function showArtwork(req, res) {
   let sql = `SELECT * FROM artworks WHERE artist=$1;`;
-  let values = [req.param.name];
+  let values = [req.params.name];
+  console.log(req.params.name);
   client.query(sql, values)
     .then(artworksResults => {
+      console.log(artworksResults.rows);
       res.render('pages/savedArtist', { artworks: artworksResults.rows });
     })
     .catch(error => handleErrors(error,res));
