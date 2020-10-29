@@ -17,11 +17,14 @@
             <li>
                 <form id="delete-artist" action='/delete/<%=nameOfArtist.artist%>' method='post'>
                 <a href="showArtworks/<%=nameOfArtist.artist%>">
-                    <p><%= nameOfArtist.artist %></p>
+                    <p class= 'nameOfArtist'><%= nameOfArtist.artist %></p>
+                    
                 </a>
-                <button type='submit'>Delete</button>
+               
+                <button class='deleteButton' type='submit'>Delete</button>
             </form>
             </li>
+            
             <% }) %>
         </ul>
         <%- include('partials/cities') %>
