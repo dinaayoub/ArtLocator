@@ -224,7 +224,7 @@ function getArtworkResults(req, res) {
                       var artistID;
                       superagent.get(url)
                         .then(people => {
-                          if (people.body.records) {
+                          if (people.body.records && people.body.records.length > 0) {
                             artistID = people.body.records[0].id;
                           }
                           return allArtworks;
