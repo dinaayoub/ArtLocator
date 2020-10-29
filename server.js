@@ -30,8 +30,6 @@ app.get('/', showHomepage);
 app.post('/searches', getArtworkResults);
 app.get('/showArtworks/:name', showArtwork);
 app.post('/delete/:artistName', deleteArtists);
-app.get('/museumDetails', showMuseums);
-
 
 //object constructors
 function ArtWork(museum, artistName, artworkTitle, artworkImage, artworkDescription, city) {
@@ -61,7 +59,7 @@ function showHomepage(req, res) {
 }
 
 function showArtwork(req, res) {
-  let sql = `SELECT  FROM artworks WHERE artist=$1;`;
+  let sql = `SELECT * FROM artworks WHERE artist=$1;`;
   let values = [req.params.name];
   console.log(req.params.name);
   client.query(sql, values)
@@ -87,17 +85,6 @@ function deleteArtists(request, response) {
       console.error(error.message);
     });
 }
-
-function showMuseums(req, res) {
-  let sql = `SELECT museum, COUNT (*) AS totalartworks FROM artworks WHERE city=$1 GROUP BY museum ORDER BY totalartworks DESC;`;
-  let values = [req.query.name];
-  console.log(values);
-  client.query(sql, values)
-    .then(results => {
-      console.log(results);
-    });
-}
-// let sql2 = `SELECT city, COUNT(*) AS totalartworks FROM artworks GROUP BY city ORDER BY totalartworks DESC`;//referebce sql statement
 
 function getArtworkResults(req, res) {
   //get the term the user searched for
