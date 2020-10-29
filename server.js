@@ -251,7 +251,6 @@ function getArtworkResults(req, res) {
                             // Render the page now that we have all the artworks from the different APIs
                             //------------------------------------------------------------------------------
                             .then(data => {
-                              console.log(data);
                               //now that we have the allArtworks array returned from the previous .then, render that array to the artworks page.
                               res.render('pages/artworks', { artworks: data, query: artist });
                               return data;
