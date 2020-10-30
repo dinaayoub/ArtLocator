@@ -4,10 +4,17 @@
     <%- include('../layout/head') %>   
 </head>
 <body>
-    <%- include('../layout/header') %>
+    <ul>
+        <% artworks.forEach(artwork => { %>
+        <li class="artistResult">
+            <%- include('partials/artwork', {artwork: artwork}) %>
+        </li>
+        <%}) %>
+    </ul>
+    <!-- <%- include('../layout/header') %>
     <% artworks.forEach(artwork => { %>
-        <%- include('../pages/partials/savedArtwork', {artwork: artwork}) %> 
-   <% }) %>
+        <%- include('../pages/partials/artwork', {artwork: artwork}) %> 
+   <% }) %> -->
 </body>
 <footer>
     <%- include('../layout/footer') %>

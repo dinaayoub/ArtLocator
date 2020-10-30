@@ -59,7 +59,7 @@ function showHomepage(req, res) {
 }
 
 function showArtwork(req, res) {
-  let sql = `SELECT * FROM artworks WHERE artist=$1;`;
+  let sql =`SELECT id, artist AS artistName, city, museum, title AS artworkTitle, description AS artworkDescription, image AS artworkImage FROM artworks WHERE artist=$1;`;
   let values = [req.params.name];
   console.log(req.params.name);
   client.query(sql, values)
