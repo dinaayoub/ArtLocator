@@ -67,7 +67,7 @@ h2{
  font-size: 12pt;
 }
 .nameAndButton{
-    width:500px;
+    width:100%;
     position: relative;
     border-bottom: 1px solid black;
     padding:5px;
@@ -75,7 +75,6 @@ h2{
 }
 .deleteButton{
 float: right;
-
 display:none; 
 color: #00008b;   
 }
@@ -165,7 +164,6 @@ footer {
     margin-left:0px;
     padding: 0px;
     /* flex-basis: 33%;  */
-    max-width:340px;
 
 
 }
@@ -217,6 +215,7 @@ ul{
     align-content: center;
 }
 .favArtists{
+    width:100%;
     display:inline-block;
     margin:0px;
     
@@ -260,7 +259,7 @@ ul{
 }
 
 
- @media only screen and (max-width: 1085px){
+ @media only screen and (max-width: 480px){
     .artistResult{
         position: relative;
         margin-left:0px;
@@ -272,13 +271,13 @@ ul{
     }
 
 }
-@media only screen and (max-width: 1000px){
+@media only screen and (max-width: 767px){
     .artistResult{
         position: relative;
     /* margin-left:0px; */
         padding: 0px;
         /* flex-basis: 33%;   */
-        max-width:800px;
+        max-width:750px;
         margin-left: 1%;
     
     
