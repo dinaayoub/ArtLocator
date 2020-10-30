@@ -21,6 +21,13 @@ To do this, it connects to multiple APIs from museums around the world to let th
 * [Artsy API](https://developers.artsy.net/v2) - one call to get the artist ID, then one call to get their artworks
 * [Harvard Art Museums API](https://github.com/harvardartmuseums/api-docs) one call to get the artist ID, then one call to get their artworks
 
+## Required node modules
+
+* express
+* superagent
+* pg
+* dotenv
+
 ## User Stories
 
 ![User Stories](public/assets/user_stories.png)
