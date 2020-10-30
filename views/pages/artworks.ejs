@@ -7,10 +7,13 @@
 <body>
     <header>
         <%- include('../layout/header') %>
-    </header>
-    <main>
         <%- include('partials/searchBar') %>
-        <h2>Search results for <%= query %></h2>
+    </header>
+    
+    <h2>Search results for <%= query %></h2>
+    <main>
+        
+        
         <ul>
             <% artworks.forEach(artwork => { %>
             <li class="artistResult">
