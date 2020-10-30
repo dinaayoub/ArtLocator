@@ -1,6 +1,8 @@
 <div class = "artworkDiv">
-    <img class="artworkImage" src="<%=artwork.image%>">
+    <% if (artwork.artworkImage) %>
     <p class="artworkTitle"><%= artwork.title%> by <%=artwork.artist%></p>
     <p class="museum"><%= artwork.museum%></p>
     <p class="artworkDescription"><%= artwork.description%></p>
+    <img class="artworkImage" src="<%=artwork.image %>">
+    <!-- <img class="artworkImage" src="<%=artwork.artworkImage%>"> -->
 </div>

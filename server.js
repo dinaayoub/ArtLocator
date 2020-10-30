@@ -58,7 +58,7 @@ function showHomepage(req, res) {
 }
 
 function showArtwork(req, res) {
-  let sql = `SELECT * FROM artworks WHERE artist=$1;`;
+  let sql =`SELECT id, artist AS artistName, city, museum, title AS artworkTitle, description AS artworkDescription, image AS artworkImage FROM artworks WHERE artist=$1;`;
   let values = [req.params.name];
   client.query(sql, values)
     .then(artworksResults => {
@@ -69,7 +69,7 @@ function showArtwork(req, res) {
 
 function deleteArtists(request, response) {
   let artistName = request.params.artistName;
-  const SQL = 'DELETE FROM artworks WHERE artist=$1;'
+  const SQL = 'DELETE FROM artworks WHERE artist=$1;';
   const VALUES = [artistName];
   client.query(SQL, VALUES)
     .then(() => {
@@ -90,7 +90,13 @@ function titleCase(str) {
 function getArtworkResults(req, res) {
   //get the term the user searched for
   let artist = req.body.search;
-
+  let sql1 = `SELECT * FROM artworks WHERE artist=$1;`;
+  client.query(sql1, [artist])
+    .then(result => {
+      if (result.rowCount) {
+        console.log('already exists');
+        res.status(200).send;
+      } else {
   //------------------------------------------------------------------------------
   // Get the results for the search query from the smithsonian's api
   //------------------------------------------------------------------------------
@@ -197,29 +203,122 @@ function getArtworkResults(req, res) {
                       break;
                     }
                   }
-
-                  let url = `https://api.artsy.net/api/artworks?artist_id=${artistID}`;
-                  //now that we have the artist ID, get all that artist's artworks from Artsy (only returns 10 I believe)
-                  superagent.get(url)
-                    //set the headers again
-                    .set('X-XAPP-Token', process.env.ARTSY_TOKEN)
-                    .set('Accept', 'application/vnd.artsy-v2+json')
-                    .then(data => {
-                      //loop through the artworks returned and create an artwork object for each of them
-                      data.body._embedded.artworks.forEach(artwork => {
-                        //find the city name if it is provided in the collecting institution field
-                        let city = '';
-                        if (artwork.collecting_institution && artwork.collecting_institution.indexOf(', ') > -1) {
-                          city = artwork.collecting_institution.slice(artwork.collecting_institution.indexOf(', ') + 2, artwork.collecting_institution.length);
-                        }
+          })
+          //------------------------------------------------------------------------------
+          // Get the results for the search query from the MET's api
+          //------------------------------------------------------------------------------
+          //then, take the array of Artwork objects we created from the Smithsonian superagent call, and send it to get MET results
+          .then(data => {
+            var allArtworks = data;
+            //get the results for the search query from the MET
+            let url = `https://collectionapi.metmuseum.org/public/collection/v1/search?q=${artist}&artistOrCulture`;
+            //call the MET's API which will return a list of object IDs that match the search query.
+            //create a promises array to place all the gets we want based on the returned object IDs, then execute them all at once.
+            var promises = [];
+            superagent.get(url)
+              .then(metData => {
+                var rows = metData.body.objectIDs ? metData.body.objectIDs : [];
+                //for each object ID we get back from the MET query, we now need to create another superagent call to get the details of that object
+                rows.forEach(item => {
+                  //set the url for each item and push the superagent.get call into the promises array
+                  let eachObjectURL = `https://collectionapi.metmuseum.org/public/collection/v1/objects/${item}`;
+                  promises.push(superagent.get(eachObjectURL));
+                });
+                //run the promises array so that we go ahead and call each of the saved superagent.get calls sequentially
+                Promise.all(promises)
+                  .then(data => {
+                    //now we have "data" which is an aggregate of all the results from the superagent.get calls of each artwork
+                    //for each object in data, check whether its artist field matches the search query,
+                    //if it does, then create an object for it and add it to the artworks array.
+                    //if it doesn't, then just ignore that result.
+                    data.forEach(objectData => {
+                      if (objectData.body.artistDisplayName.toLowerCase().indexOf(artist.toLowerCase()) > -1) {
+                        //the user's search query matches the artist's name, so create the object and push it into the allArtworks array.
                         allArtworks.push(new ArtWork(
-                          artwork.collecting_institution, //this is the museum name
-                          artist, //the artist name we got from the previous API call
-                          artwork.title, //the artwork title
-                          artwork._links.thumbnail ? artwork._links.thumbnail.href.replace('medium', 'larger') : null, //the thumbnail, but to match all the others I'm getting the largest version of the image instead of the default medium one
-                          null, //they don't seem to have a description for artworks so set it to null :(,
-                          city
+                          objectData.body.repository,
+                          artist,
+                          objectData.body.title,
+                          objectData.body.primaryImage,
+                          null,
+                          'New York NY'
                         ));
+                      }
+                    });
+                    console.log(allArtworks);
+                    //we are done adding the MET results to the artworks array. Return it so that the next .then block can use it.
+                    return allArtworks;
+                  })
+                  //------------------------------------------------------------------------------
+                  // Get the results for the search query from the Arty api
+                  //------------------------------------------------------------------------------
+                  .then(data => {
+                    //connect to the Artsy API using the header data they require
+                    let allArtworks = data;
+                    let url = `https://api.artsy.net/api/search?q=${artist}+more:pagemap:metatags-og_type:artist`;
+                    //this will return the list of artists and "shows", whatever that means...
+                    superagent.get(url)
+                      //authentication with Artsy requires setting these headers. TODO: make the token something we get as well when it expires.
+                      .set('X-XAPP-Token', process.env.ARTSY_TOKEN)
+                      .set('Accept', 'application/vnd.artsy-v2+json')
+                      .then(data => {
+                        //get the first "artist" result, and get the artist id from the "self" link by removing everything before the id (which is the last part of the href url)
+                        var artistID;
+                        for (let i = 0; i < data.body._embedded.results.length; i++) {
+                          //if the current result's type is artist and it has a self link, then get the artist ID from it.
+                          if (data.body._embedded.results[i].og_type === 'artist' && data.body._embedded.results[i]._links.self.href) {
+                            //slice the link to get the ID of the artist which comes after "artists/" in the URL
+                            artistID = data.body._embedded.results[i]._links.self.href.slice(data.body._embedded.results[i]._links.self.href.indexOf('artists/') + 8, data.body._embedded.results[i]._links.self.href.length);
+                            //quit the for loop because we're just choosing the first artist.
+                            //todo: we can improve this by getting all the artists and asking which one they mean, or just showing all the artworks by people of that name.
+                            break;
+                          }
+                        }
+
+                        let url = `https://api.artsy.net/api/artworks?artist_id=${artistID}`;
+                        //now that we have the artist ID, get all that artist's artworks from Artsy (only returns 10 I believe)
+                        superagent.get(url)
+                          //set the headers again
+                          .set('X-XAPP-Token', process.env.ARTSY_TOKEN)
+                          .set('Accept', 'application/vnd.artsy-v2+json')
+                          .then(data => {
+                            //loop through the artworks returned and create an artwork object for each of them
+                            data.body._embedded.artworks.forEach(artwork => {
+                              //find the city name if it is provided in the collecting institution field
+                              let city = '';
+                              if (artwork.collecting_institution && artwork.collecting_institution.indexOf(', ') > -1) {
+                                city = artwork.collecting_institution.slice(artwork.collecting_institution.indexOf(', ') + 2, artwork.collecting_institution.length);
+                              }
+                              allArtworks.push(new ArtWork(
+                                artwork.collecting_institution, //this is the museum name
+                                artist, //the artist name we got from the previous API call
+                                artwork.title, //the artwork title
+                                artwork._links.thumbnail ? artwork._links.thumbnail.href.replace('medium', 'larger') : null, //the thumbnail, but to match all the others I'm getting the largest version of the image instead of the default medium one
+                                null, //they don't seem to have a description for artworks so set it to null :(,
+                                city
+                              ));
+                            });
+                            return allArtworks;
+                          })
+                          //------------------------------------------------------------------------------
+                          // Render the page now that we have all the artworks from the different APIs
+                          //------------------------------------------------------------------------------
+                          .then(data => {
+                            //now that we have the allArtworks array returned from the previous .then, render that array to the artworks page.
+                            res.render('pages/artworks', { artworks: data, query: artist });
+                            return data;
+                          })
+                          //------------------------------------------------------------------------------
+                          // Save the artworks to the database
+                          //------------------------------------------------------------------------------
+                          .then(allArtworks => {
+                            //todo: how do we know if this artist is already in the db? we will be creating a lot of duplicates
+                            let sql = `INSERT INTO artworks (title, description, image, artist, museum, city) VALUES ($1,$2,$3,$4,$5,$6);`;
+                            allArtworks.forEach(artwork => {
+                              let values = [artwork.artworkTitle, artwork.artworkDescription, artwork.artworkImage, artwork.artistName, artwork.museum, artwork.city];
+                              client.query(sql, values);
+                            });
+                          })
+                          .catch(error => handleErrors(error, res));
                       })
                       return allArtworks;
                     })
