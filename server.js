@@ -298,11 +298,11 @@ function handleErrors(error, res) {
   if (res) {
     res.render('pages/error', { error: error });
   }
-  else console.log('COULDN\'T RENDER TO RES: ', error);
+  else console.log('COULDN\'T RENDER TO RESPONSE - empty response provided to handleErrors: ', error);
 }
 
 function pageNotFound(req, res) {
-  console.error('not found');
+  console.error('Page not found');
   //res.status(404).send('Oops, can\'t find this page');
   res.render('pages/error', { error: new Error('Oooops, we couldn\'t find this page.') });
 }

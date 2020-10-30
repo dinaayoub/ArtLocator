@@ -10,6 +10,10 @@ This project aims to allow art lovers to find the next city or museum they may w
 
 To do this, it connects to multiple APIs from museums around the world to let the user search by artist and add results to their favorites, which will be sorted by city, in descending order of number of artworks available in that city's museums from their favorite artists.
 
+## Our Trello Board
+
+[Art Locator Trello Board](https://trello.com/b/V0owyVX9/art-locator-app)
+
 ## User Stories
 
 ![User Stories](public/assets/user_stories.png)
@@ -35,8 +39,6 @@ To do this, it connects to multiple APIs from museums around the world to let th
 * [Smithsonian API](http://edan.si.edu/openaccess/apidocs/)
 * [Metropolitan Museum of Art API](https://metmuseum.github.io/)
 * [Artsy API](https://developers.artsy.net/v2)
-
-Other APIs we may integrate:
 * [Harvard Art Museums API] (https://github.com/harvardartmuseums/api-docs)
 
 ## Deployement
