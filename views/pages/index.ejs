@@ -3,16 +3,37 @@
 
 <head>
     <%- include('../layout/head') %>
+   
 </head>
 
 <body>
     <header>
-        <%- include('../layout/header') %>
+       <%- include('../layout/header') %>
+       <%- include('partials/searchBar') %>
     </header>
-    <main>
-        <%- include('partials/searchBar') %>
-        <%- include('partials/favoriteArtists') %>
-        <%- include('partials/cities') %>
+    <main class='indexMain'>
+       <div class='favoritesPartial'>
+        <h2 class='favorites'>Favorite Artists</h2>
+        <ul class= 'favArtists'>
+            <% artists.forEach(nameOfArtist => { %>
+            <li class='nameAndButton'>
+                <form id="delete-artist" action='/delete/<%=nameOfArtist.artist%>' method='post'>
+                    <button class='deleteButton' type='submit'>X</button>
+                    <a href="showArtworks/<%=nameOfArtist.artist%>">
+                    <p class= 'nameOfArtist'><%= nameOfArtist.artist %></p>
+                    
+                </a>
+               
+                
+            </form>
+            </li>
+            
+            <% }) %>
+            
+        </ul>
+    </div>
+        <div class = 'citiesPartial'> <%- include('partials/cities') %> </div>
+       
     </main>
     <footer>
         <%- include('../layout/footer') %>
