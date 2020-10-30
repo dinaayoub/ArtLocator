@@ -6,14 +6,14 @@ const app = express();
 const superagent = require('superagent');
 const env = require('dotenv');
 const pg = require('pg');
-const cors = require('cors');
-const methodOverride = require('method-override');
+//const cors = require('cors');
+//const methodOverride = require('method-override');
 
 //client side configs
-app.use(cors());
+//app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('./public'));
-app.use(methodOverride('_method'));
+//app.use(methodOverride('_method'));
 app.set('view engine', 'ejs');
 
 //server side configs
@@ -53,7 +53,7 @@ function showHomepage(req, res) {
           //then render the page
           res.render('pages/index', { cities: results.rows, artists: artistsResult.rows });
         })
-        .catch(error => handleErrors(error, res));
+        .catch(error => handleErrors(error, req, res));
     });
 }
 
@@ -95,7 +95,7 @@ function getArtworkResults(req, res) {
     .then(result => {
       if (result.rowCount) {
         req.params.name = artist;
-        showArtwork(req,res);
+        showArtwork(req, res);
       } else {
         //------------------------------------------------------------------------------
         // Get the results for the search query from the smithsonian's api
@@ -279,25 +279,25 @@ function getArtworkResults(req, res) {
                                       client.query(sql, values);
                                     })
                                   })
-                                  .catch(error => handleErrors(error, res));
+                                  .catch(error => handleErrors(error, req, res));
                               })
-                              .catch(error => handleErrors(error, res));
+                              .catch(error => handleErrors(error, req, res));
                           })
-                          .catch(error => handleErrors(error, res));
+                          .catch(error => handleErrors(error, req, res));
                       })
-                      .catch(error => handleErrors(error, res));
+                      .catch(error => handleErrors(error, req, res));
                   })
-                  .catch(error => handleErrors(error, res));
+                  .catch(error => handleErrors(error, req, res));
               })
-              .catch(error => handleErrors(error, res));
+              .catch(error => handleErrors(error, req, res));
           })
-          .catch(error => handleErrors(error, res));
+          .catch(error => handleErrors(error, req, res));
       }
     })
-    .catch(error => handleErrors(error, res));
+    .catch(error => handleErrors(error, req, res));
 }
 
-function handleErrors(error, res) {
+function handleErrors(error, req, res) {
   //render the error page with the provided error message.
   console.error('error message: ', error.message);
   console.error('file name: ', error.fileName);
@@ -305,7 +305,13 @@ function handleErrors(error, res) {
   console.error('stack trace: ', error.stack);
 
   if (res) {
+    //if (error.message === 'socket hang up') {
+    // console.log('RETRYING AFTER ', error.message)
+    //  getArtworkResults(req, res);
+    //}
+    //else {
     res.render('pages/error', { error: error });
+    //}
   }
   else console.log('COULDN\'T RENDER TO RESPONSE - empty response provided to handleErrors: ', error);
 }
