@@ -6,14 +6,10 @@ const app = express();
 const superagent = require('superagent');
 const env = require('dotenv');
 const pg = require('pg');
-//const cors = require('cors');
-//const methodOverride = require('method-override');
 
 //client side configs
-//app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('./public'));
-//app.use(methodOverride('_method'));
 app.set('view engine', 'ejs');
 
 //server side configs
@@ -32,9 +28,10 @@ app.get('/showArtworks/:name', showArtwork);
 app.post('/delete/:name', deleteArtists)
 
 //object constructors
-function ArtWork(museum, name, title, image, description, city) {
+function ArtWork(museum, artistName, artistDisplayName, title, image, description, city) {
   this.museum = museum;
-  this.name = titleCase(name);
+  this.name = titleCase(artistName);
+  this.artistDisplayName = artistDisplayName;
   this.image = image;
   this.description = description;
   this.title = title;
@@ -124,6 +121,7 @@ function getArtworkResults(req, res) {
               allArtworks.push(new ArtWork(
                 item.content.descriptiveNonRepeating.data_source,
                 artist,
+                (item.content.freetext && item.content.freetext.name && item.content.freetext.name[0]) ? item.content.freetext.name[0].content : null,
                 item.title,
                 //if there is online_media, then check how many items are in it. If more than 0, then set the image URL to the thumbnail of the first image. Otherwise, set this field to null so we don't render an image on the page.
                 (item.content.descriptiveNonRepeating.online_media && item.content.descriptiveNonRepeating.online_media.mediaCount > 0) ? item.content.descriptiveNonRepeating.online_media.media[0].thumbnail : null,
@@ -156,6 +154,8 @@ function getArtworkResults(req, res) {
                   promises.push(superagent.get(eachObjectURL));
                 });
                 //run the promises array so that we go ahead and call each of the saved superagent.get calls sequentially
+                var token = '';
+                var expires_at = '';
                 Promise.all(promises)
                   .then(data => {
                     //now we have "data" which is an aggregate of all the results from the superagent.get calls of each artwork
@@ -168,6 +168,7 @@ function getArtworkResults(req, res) {
                         allArtworks.push(new ArtWork(
                           objectData.body.repository,
                           artist,
+                          objectData.body.artistDisplayName,
                           objectData.body.title,
                           objectData.body.primaryImage,
                           null,
@@ -177,6 +178,18 @@ function getArtworkResults(req, res) {
                     });
                     //we are done adding the MET results to the artworks array. Return it so that the next .then block can use it.
                     return allArtworks;
+                  })
+                  .then(data => {
+                    let url = `https://api.artsy.net/api/tokens/xapp_token`;
+                    superagent
+                      .post(url)
+                      .set('Accept', 'application/x-www-form-urlencoded')
+                      .send({ client_id: process.env.ARTSY_CLIENTID, client_secret: process.env.ARTSY_APIKEY })
+                      .then(result => {
+                        token = result.body.token;
+                        expires_at = result.body.expires_at;
+                      });
+                    return data;
                   })
                   //------------------------------------------------------------------------------
                   // Get the results for the search query from the Arty api
@@ -188,27 +201,28 @@ function getArtworkResults(req, res) {
                     //this will return the list of artists and "shows", whatever that means...
                     superagent.get(url)
                       //authentication with Artsy requires setting these headers. TODO: make the token something we get as well when it expires.
-                      .set('X-XAPP-Token', process.env.ARTSY_TOKEN)
+                      .set('X-XAPP-Token', token)
                       .set('Accept', 'application/vnd.artsy-v2+json')
                       .then(data => {
                         //get the first "artist" result, and get the artist id from the "self" link by removing everything before the id (which is the last part of the href url)
                         var artistID;
+                        var artistDisplayName;
                         for (let i = 0; i < data.body._embedded.results.length; i++) {
                           //if the current result's type is artist and it has a self link, then get the artist ID from it.
                           if (data.body._embedded.results[i].og_type === 'artist' && data.body._embedded.results[i]._links.self.href) {
                             //slice the link to get the ID of the artist which comes after "artists/" in the URL
                             artistID = data.body._embedded.results[i]._links.self.href.slice(data.body._embedded.results[i]._links.self.href.indexOf('artists/') + 8, data.body._embedded.results[i]._links.self.href.length);
+                            artistDisplayName = data.body._embedded.results[i].title;
                             //quit the for loop because we're just choosing the first artist.
                             //todo: we can improve this by getting all the artists and asking which one they mean, or just showing all the artworks by people of that name.
                             break;
                           }
                         }
-
                         let url = `https://api.artsy.net/api/artworks?artist_id=${artistID}`;
                         //now that we have the artist ID, get all that artist's artworks from Artsy (only returns 10 I believe)
                         superagent.get(url)
                           //set the headers again
-                          .set('X-XAPP-Token', process.env.ARTSY_TOKEN)
+                          .set('X-XAPP-Token', token)
                           .set('Accept', 'application/vnd.artsy-v2+json')
                           .then(data => {
                             //loop through the artworks returned and create an artwork object for each of them
@@ -221,6 +235,7 @@ function getArtworkResults(req, res) {
                               allArtworks.push(new ArtWork(
                                 artwork.collecting_institution, //this is the museum name
                                 artist, //the artist name we got from the previous API call
+                                artistDisplayName,
                                 artwork.title, //the artwork title
                                 artwork._links.thumbnail ? artwork._links.thumbnail.href.replace('medium', 'larger') : null, //the thumbnail, but to match all the others I'm getting the largest version of the image instead of the default medium one
                                 null, //they don't seem to have a description for artworks so set it to null :(,
@@ -235,10 +250,12 @@ function getArtworkResults(req, res) {
                           .then(allArtworks => {
                             let url = `https://api.harvardartmuseums.org/person?q="${artist}"&apikey=${process.env.HARVARD_APIKEY}&sort=objectcount&sortorder=desc&`
                             var artistID;
+                            var artistDisplayName;
                             superagent.get(url)
                               .then(people => {
                                 if (people.body.records && people.body.records.length > 0) {
                                   artistID = people.body.records[0].id;
+                                  artistDisplayName = people.body.records[0].displayname;
                                 }
                                 return allArtworks;
                               })
@@ -251,12 +268,13 @@ function getArtworkResults(req, res) {
                                         allArtworks.push(new ArtWork(
                                           artwork.creditline,
                                           artist,
+                                          artistDisplayName,
                                           artwork.title,
                                           artwork.primaryimageurl,
                                           artwork.labeltext,
                                           'Boston, MA'
-                                        ))
-                                      })
+                                        ));
+                                      });
                                     }
                                     return allArtworks;
                                   })
@@ -313,7 +331,9 @@ function handleErrors(error, req, res) {
     res.render('pages/error', { error: error });
     //}
   }
-  else console.log('COULDN\'T RENDER TO RESPONSE - empty response provided to handleErrors: ', error);
+  else {
+    console.log('COULDN\'T RENDER TO RESPONSE - empty response provided to handleErrors: ', error);
+  }
 }
 
 function pageNotFound(req, res) {

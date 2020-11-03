@@ -16,7 +16,7 @@ To do this, it connects to multiple APIs from museums around the world to let th
 
 ## APIs used
 
-* [Smithsonian API](http://edan.si.edu/openaccess/apidocs/) - one call
+* [Smithsonian API](http://edan.si.edu/openaccess/apidocs/) - one call to get the artworks for an artist
 * [Metropolitan Museum of Art API](https://metmuseum.github.io/) - one call to get the list of artworks, then one call for each of the artworks
 * [Artsy API](https://developers.artsy.net/v2) - one call to get the artist ID, then one call to get their artworks
 * [Harvard Art Museums API](https://github.com/harvardartmuseums/api-docs) one call to get the artist ID, then one call to get their artworks
