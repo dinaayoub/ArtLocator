@@ -179,7 +179,10 @@ function getArtworkResults(req, res) {
                     //we are done adding the MET results to the artworks array. Return it so that the next .then block can use it.
                     return allArtworks;
                   })
-                  .then(data => {
+                  //------------------------------------------------------------------------------
+                  // Get the results for the search query from the Arty api
+                  //------------------------------------------------------------------------------
+                  .then(allArtworks => {
                     let url = `https://api.artsy.net/api/tokens/xapp_token`;
                     superagent
                       .post(url)
@@ -188,114 +191,109 @@ function getArtworkResults(req, res) {
                       .then(result => {
                         token = result.body.token;
                         expires_at = result.body.expires_at;
-                      });
-                    return data;
-                  })
-                  //------------------------------------------------------------------------------
-                  // Get the results for the search query from the Arty api
-                  //------------------------------------------------------------------------------
-                  .then(data => {
-                    //connect to the Artsy API using the header data they require
-                    let allArtworks = data;
-                    let url = `https://api.artsy.net/api/search?q=${artist}+more:pagemap:metatags-og_type:artist`;
-                    //this will return the list of artists and "shows", whatever that means...
-                    superagent.get(url)
-                      //authentication with Artsy requires setting these headers. TODO: make the token something we get as well when it expires.
-                      .set('X-XAPP-Token', token)
-                      .set('Accept', 'application/vnd.artsy-v2+json')
-                      .then(data => {
-                        //get the first "artist" result, and get the artist id from the "self" link by removing everything before the id (which is the last part of the href url)
-                        var artistID;
-                        var artistDisplayName;
-                        for (let i = 0; i < data.body._embedded.results.length; i++) {
-                          //if the current result's type is artist and it has a self link, then get the artist ID from it.
-                          if (data.body._embedded.results[i].og_type === 'artist' && data.body._embedded.results[i]._links.self.href) {
-                            //slice the link to get the ID of the artist which comes after "artists/" in the URL
-                            artistID = data.body._embedded.results[i]._links.self.href.slice(data.body._embedded.results[i]._links.self.href.indexOf('artists/') + 8, data.body._embedded.results[i]._links.self.href.length);
-                            artistDisplayName = data.body._embedded.results[i].title;
-                            //quit the for loop because we're just choosing the first artist.
-                            //todo: we can improve this by getting all the artists and asking which one they mean, or just showing all the artworks by people of that name.
-                            break;
-                          }
-                        }
-                        let url = `https://api.artsy.net/api/artworks?artist_id=${artistID}`;
-                        //now that we have the artist ID, get all that artist's artworks from Artsy (only returns 10 I believe)
+                        return allArtworks;
+                      })
+                      .then(allArtworks => {
+                        //connect to the Artsy API using the header data they require
+                        let url = `https://api.artsy.net/api/search?q=${artist}+more:pagemap:metatags-og_type:artist`;
+                        //this will return the list of artists and "shows", whatever that means...
                         superagent.get(url)
-                          //set the headers again
+                          //authentication with Artsy requires setting these headers. TODO: make the token something we get as well when it expires.
                           .set('X-XAPP-Token', token)
                           .set('Accept', 'application/vnd.artsy-v2+json')
                           .then(data => {
-                            //loop through the artworks returned and create an artwork object for each of them
-                            data.body._embedded.artworks.forEach(artwork => {
-                              //find the city name if it is provided in the collecting institution field
-                              let city = '';
-                              if (artwork.collecting_institution && artwork.collecting_institution.indexOf(', ') > -1) {
-                                city = artwork.collecting_institution.slice(artwork.collecting_institution.indexOf(', ') + 2, artwork.collecting_institution.length);
-                              }
-                              allArtworks.push(new ArtWork(
-                                artwork.collecting_institution, //this is the museum name
-                                artist, //the artist name we got from the previous API call
-                                artistDisplayName,
-                                artwork.title, //the artwork title
-                                artwork._links.thumbnail ? artwork._links.thumbnail.href.replace('medium', 'larger') : null, //the thumbnail, but to match all the others I'm getting the largest version of the image instead of the default medium one
-                                null, //they don't seem to have a description for artworks so set it to null :(,
-                                city
-                              ));
-                            });
-                            return allArtworks;
-                          })
-                          //------------------------------------------------------------------------------
-                          // Get the results for the search query from the Harvard api
-                          //------------------------------------------------------------------------------
-                          .then(allArtworks => {
-                            let url = `https://api.harvardartmuseums.org/person?q="${artist}"&apikey=${process.env.HARVARD_APIKEY}&sort=objectcount&sortorder=desc&`
+                            //get the first "artist" result, and get the artist id from the "self" link by removing everything before the id (which is the last part of the href url)
                             var artistID;
-                            var artistDisplayName;
+                            for (let i = 0; i < data.body._embedded.results.length; i++) {
+                              //if the current result's type is artist and it has a self link, then get the artist ID from it.
+                              if (data.body._embedded.results[i].og_type === 'artist' && data.body._embedded.results[i]._links.self.href) {
+                                //slice the link to get the ID of the artist which comes after "artists/" in the URL
+                                artistID = data.body._embedded.results[i]._links.self.href.slice(data.body._embedded.results[i]._links.self.href.indexOf('artists/') + 8, data.body._embedded.results[i]._links.self.href.length);
+                                //quit the for loop because we're just choosing the first artist.
+                                //todo: we can improve this by getting all the artists and asking which one they mean, or just showing all the artworks by people of that name.
+                                break;
+                              }
+                            }
+
+                            let url = `https://api.artsy.net/api/artworks?artist_id=${artistID}`;
+                            //now that we have the artist ID, get all that artist's artworks from Artsy (only returns 10 I believe)
                             superagent.get(url)
-                              .then(people => {
-                                if (people.body.records && people.body.records.length > 0) {
-                                  artistID = people.body.records[0].id;
-                                  artistDisplayName = people.body.records[0].displayname;
-                                }
+                              //set the headers again
+                              .set('X-XAPP-Token', token)
+                              .set('Accept', 'application/vnd.artsy-v2+json')
+                              .then(data => {
+                                //loop through the artworks returned and create an artwork object for each of them
+                                data.body._embedded.artworks.forEach(artwork => {
+                                  //find the city name if it is provided in the collecting institution field
+                                  let city = '';
+                                  if (artwork.collecting_institution && artwork.collecting_institution.indexOf(', ') > -1) {
+                                    city = artwork.collecting_institution.slice(artwork.collecting_institution.indexOf(', ') + 2, artwork.collecting_institution.length);
+                                  }
+                                  allArtworks.push(new ArtWork(
+                                    artwork.collecting_institution, //this is the museum name
+                                    artist, //the artist name we got from the previous API call
+                                    artwork.title, //the artwork title
+                                    artwork._links.thumbnail ? artwork._links.thumbnail.href.replace('medium', 'larger') : null, //the thumbnail, but to match all the others I'm getting the largest version of the image instead of the default medium one
+                                    null, //they don't seem to have a description for artworks so set it to null :(,
+                                    city
+                                  ));
+                                });
                                 return allArtworks;
                               })
+                              //------------------------------------------------------------------------------
+                              // Get the results for the search query from the Harvard api
+                              //------------------------------------------------------------------------------
                               .then(allArtworks => {
-                                let url = `https://api.harvardartmuseums.org/object?apikey=${process.env.HARVARD_APIKEY}&person=${artistID}&classification=Paintings`;
+                                let url = `https://api.harvardartmuseums.org/person?q="${artist}"&apikey=${process.env.HARVARD_APIKEY}&sort=objectcount&sortorder=desc&`
+                                var artistID;
+                                var artistDisplayName;
                                 superagent.get(url)
-                                  .then(data => {
-                                    if (data.body.records) {
-                                      data.body.records.forEach(artwork => {
-                                        allArtworks.push(new ArtWork(
-                                          artwork.creditline,
-                                          artist,
-                                          artistDisplayName,
-                                          artwork.title,
-                                          artwork.primaryimageurl,
-                                          artwork.labeltext,
-                                          'Boston, MA'
-                                        ));
-                                      });
+                                  .then(people => {
+                                    if (people.body.records && people.body.records.length > 0) {
+                                      artistID = people.body.records[0].id;
+                                      artistDisplayName = people.body.records[0].displayname;
                                     }
                                     return allArtworks;
                                   })
-                                  //------------------------------------------------------------------------------
-                                  // Render the page now that we have all the artworks from the different APIs
-                                  //------------------------------------------------------------------------------
-                                  .then(data => {
-                                    //now that we have the allArtworks array returned from the previous .then, render that array to the artworks page.
-                                    res.render('pages/artworks', { artworks: data, query: artist });
-                                    return data;
-                                  })
-                                  //------------------------------------------------------------------------------
-                                  // Save the artworks to the database
-                                  //------------------------------------------------------------------------------
                                   .then(allArtworks => {
-                                    //todo: how do we know if this artist is already in the db? we will be creating a lot of duplicates
-                                    let sql = `INSERT INTO artworks (title, description, image, artist, museum, city) VALUES ($1,$2,$3,$4,$5,$6);`;
-                                    allArtworks.forEach(artwork => {
-                                      let values = [artwork.title, artwork.description, artwork.image, artwork.name, artwork.museum, artwork.city];
-                                      client.query(sql, values);
-                                    })
+                                    let url = `https://api.harvardartmuseums.org/object?apikey=${process.env.HARVARD_APIKEY}&person=${artistID}&classification=Paintings`;
+                                    superagent.get(url)
+                                      .then(data => {
+                                        if (data.body.records) {
+                                          data.body.records.forEach(artwork => {
+                                            allArtworks.push(new ArtWork(
+                                              artwork.creditline,
+                                              artist,
+                                              artistDisplayName,
+                                              artwork.title,
+                                              artwork.primaryimageurl,
+                                              artwork.labeltext,
+                                              'Boston, MA'
+                                            ));
+                                          });
+                                        }
+                                        return allArtworks;
+                                      })
+                                      //------------------------------------------------------------------------------
+                                      // Render the page now that we have all the artworks from the different APIs
+                                      //------------------------------------------------------------------------------
+                                      .then(data => {
+                                        //now that we have the allArtworks array returned from the previous .then, render that array to the artworks page.
+                                        res.render('pages/artworks', { artworks: data, query: artist });
+                                        return data;
+                                      })
+                                      //------------------------------------------------------------------------------
+                                      // Save the artworks to the database
+                                      //------------------------------------------------------------------------------
+                                      .then(allArtworks => {
+                                        //todo: how do we know if this artist is already in the db? we will be creating a lot of duplicates
+                                        let sql = `INSERT INTO artworks (title, description, image, artist, museum, city) VALUES ($1,$2,$3,$4,$5,$6);`;
+                                        allArtworks.forEach(artwork => {
+                                          let values = [artwork.title, artwork.description, artwork.image, artwork.name, artwork.museum, artwork.city];
+                                          client.query(sql, values);
+                                        })
+                                      })
+                                      .catch(error => handleErrors(error, req, res));
                                   })
                                   .catch(error => handleErrors(error, req, res));
                               })
@@ -309,7 +307,6 @@ function getArtworkResults(req, res) {
               })
               .catch(error => handleErrors(error, req, res));
           })
-          .catch(error => handleErrors(error, req, res));
       }
     })
     .catch(error => handleErrors(error, req, res));
