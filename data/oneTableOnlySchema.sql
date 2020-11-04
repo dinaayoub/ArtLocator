@@ -10,6 +10,7 @@ CREATE TABLE artworks (
     description TEXT,
     image VARCHAR(255),
     artist VARCHAR(255),
+    artist_display_name VARCHAR(255),
     museum VARCHAR(255),
     city VARCHAR(255)
 );
