@@ -31,7 +31,7 @@ app.post('/delete/:name', deleteArtists)
 function ArtWork(museum, artistName, artistDisplayName, title, image, description, city) {
   this.museum = museum;
   this.name = titleCase(artistName);
-  this.artistDisplayName = artistDisplayName;
+  (artistDisplayName && artistDisplayName !== '') ? this.artist_display_name = artistDisplayName : this.artist_display_name = artistName;
   this.image = image;
   this.description = description;
   this.title = title;
@@ -55,7 +55,7 @@ function showHomepage(req, res) {
 }
 
 function showArtwork(req, res) {
-  let sql = `SELECT id, artist AS name, city, museum, title AS title, description AS description, image AS image FROM artworks WHERE artist=$1;`;
+  let sql = `SELECT id, artist AS name, artist_display_name, city, museum, title, description, image FROM artworks WHERE artist=$1;`;
   let values = [req.params.name];
   client.query(sql, values)
     .then(artworksResults => {
@@ -203,12 +203,13 @@ function getArtworkResults(req, res) {
                           .set('Accept', 'application/vnd.artsy-v2+json')
                           .then(data => {
                             //get the first "artist" result, and get the artist id from the "self" link by removing everything before the id (which is the last part of the href url)
-                            var artistID;
+                            var artistID, artistDisplayName;
                             for (let i = 0; i < data.body._embedded.results.length; i++) {
                               //if the current result's type is artist and it has a self link, then get the artist ID from it.
                               if (data.body._embedded.results[i].og_type === 'artist' && data.body._embedded.results[i]._links.self.href) {
                                 //slice the link to get the ID of the artist which comes after "artists/" in the URL
                                 artistID = data.body._embedded.results[i]._links.self.href.slice(data.body._embedded.results[i]._links.self.href.indexOf('artists/') + 8, data.body._embedded.results[i]._links.self.href.length);
+                                artistDisplayName = data.body._embedded.results[i].title;
                                 //quit the for loop because we're just choosing the first artist.
                                 //todo: we can improve this by getting all the artists and asking which one they mean, or just showing all the artworks by people of that name.
                                 break;
@@ -232,6 +233,7 @@ function getArtworkResults(req, res) {
                                   allArtworks.push(new ArtWork(
                                     artwork.collecting_institution, //this is the museum name
                                     artist, //the artist name we got from the previous API call
+                                    artistDisplayName,
                                     artwork.title, //the artwork title
                                     artwork._links.thumbnail ? artwork._links.thumbnail.href.replace('medium', 'larger') : null, //the thumbnail, but to match all the others I'm getting the largest version of the image instead of the default medium one
                                     null, //they don't seem to have a description for artworks so set it to null :(,
@@ -277,19 +279,20 @@ function getArtworkResults(req, res) {
                                       //------------------------------------------------------------------------------
                                       // Render the page now that we have all the artworks from the different APIs
                                       //------------------------------------------------------------------------------
-                                      .then(data => {
+                                      .then(allArtworks => {
+                                        console.log(allArtworks)
                                         //now that we have the allArtworks array returned from the previous .then, render that array to the artworks page.
-                                        res.render('pages/artworks', { artworks: data, query: artist });
-                                        return data;
+                                        res.render('pages/artworks', { artworks: allArtworks, query: artist });
+                                        return allArtworks;
                                       })
                                       //------------------------------------------------------------------------------
                                       // Save the artworks to the database
                                       //------------------------------------------------------------------------------
                                       .then(allArtworks => {
                                         //todo: how do we know if this artist is already in the db? we will be creating a lot of duplicates
-                                        let sql = `INSERT INTO artworks (title, description, image, artist, museum, city) VALUES ($1,$2,$3,$4,$5,$6);`;
+                                        let sql = `INSERT INTO artworks (title, description, image, artist, artist_display_name, museum, city) VALUES ($1,$2,$3,$4,$5,$6,$7);`;
                                         allArtworks.forEach(artwork => {
-                                          let values = [artwork.title, artwork.description, artwork.image, artwork.name, artwork.museum, artwork.city];
+                                          let values = [artwork.title, artwork.description, artwork.image, artwork.name, artwork.artist_display_name, artwork.museum, artwork.city];
                                           client.query(sql, values);
                                         })
                                       })
